@@ -461,7 +461,14 @@
             }
 
             initializeGame() {
-                this.board = this.createBoard();
+                // 生成棋盘，确保有足够的可连接配对
+                let attempts = 0;
+                let maxAttempts = 50;
+                do {
+                    this.board = this.createBoard();
+                    attempts++;
+                } while (attempts < maxAttempts && !this.hasEnoughConnectablePairs());
+                
                 this.renderBoard();
                 this.gameStarted = true;
                 this.score = 0;
@@ -649,10 +656,13 @@
 
                     // 检查路径上的每个点（不包括起点和终点）
                     for (let col = start + 1; col < end; col++) {
-                        // 检查是否在边界内且有阻挡
-                        if (col >= 0 && col < this.cols && this.board[row1][col] !== null) {
-                            return false; // 路径上有阻挡
+                        // 如果点在边界内，检查是否有阻挡
+                        if (row1 >= 0 && row1 < this.rows && col >= 0 && col < this.cols) {
+                            if (this.board[row1][col] !== null) {
+                                return false; // 路径上有阻挡
+                            }
                         }
+                        // 如果点在边界外，允许通过（边界外的点可以作为路径的一部分）
                     }
                     return true;
                 }
@@ -664,10 +674,13 @@
 
                     // 检查路径上的每个点（不包括起点和终点）
                     for (let row = start + 1; row < end; row++) {
-                        // 检查是否在边界内且有阻挡
-                        if (row >= 0 && row < this.rows && this.board[row][col1] !== null) {
-                            return false; // 路径上有阻挡
+                        // 如果点在边界内，检查是否有阻挡
+                        if (row >= 0 && row < this.rows && col1 >= 0 && col1 < this.cols) {
+                            if (this.board[row][col1] !== null) {
+                                return false; // 路径上有阻挡
+                            }
                         }
+                        // 如果点在边界外，允许通过（边界外的点可以作为路径的一部分）
                     }
                     return true;
                 }
@@ -719,47 +732,15 @@
                     return true; // 在右边界外可以连接
                 }
 
-                // 方法2：标准的一个转折点扩展算法
-                // 从起点开始的所有可能的第一个转折点
-                for (let corner1Row = -1; corner1Row <= this.rows; corner1Row++) {
-                    for (let corner1Col = -1; corner1Col <= this.cols; corner1Col++) {
-                        // 跳过起点本身和已经在同一直线上的点
-                        if ((corner1Row === row1 && corner1Col === col1) ||
-                            (corner1Row === row2 && corner1Col === col2)) continue;
-
-                        // 检查起点到第一个转折点是否可达
-                        if (!this.canDirectConnect(row1, col1, corner1Row, corner1Col)) continue;
-
-                        // 从第一个转折点开始的所有可能的第二个转折点
-                        for (let corner2Row = -1; corner2Row <= this.rows; corner2Row++) {
-                            for (let corner2Col = -1; corner2Col <= this.cols; corner2Col++) {
-                                // 跳过重复点
-                                if ((corner2Row === corner1Row && corner2Col === corner1Col) ||
-                                    (corner2Row === row1 && corner2Col === col1)) continue;
-
-                                // 检查三个条件：
-                                // 1. 第一个转折点到第二个转折点可达
-                                // 2. 第二个转折点到终点可达
-                                // 3. 第二个转折点是有效的（边界外或空位）
-                                if (this.canDirectConnect(corner1Row, corner1Col, corner2Row, corner2Col) &&
-                                    this.canDirectConnect(corner2Row, corner2Col, row2, col2) &&
-                                    this.isValidCorner(corner2Row, corner2Col)) {
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // 方法3：简化的两步搜索（优化性能）
-                // 只搜索有效的中间转折点组合
-
-                // 先找所有可能的第一个转折点
+                // 方法2：标准的两转折点搜索算法
+                // 先找所有可能的第一个转折点（从起点可达的点）
                 const firstCorners = [];
                 for (let row = -1; row <= this.rows; row++) {
                     for (let col = -1; col <= this.cols; col++) {
+                        // 跳过起点和终点
                         if ((row === row1 && col === col1) || (row === row2 && col === col2)) continue;
-                        if (this.canDirectConnect(row1, col1, row, col)) {
+                        // 检查起点到该点是否可以直接连接，且该点可以作为转折点
+                        if (this.canDirectConnect(row1, col1, row, col) && this.isValidCorner(row, col)) {
                             firstCorners.push({row, col});
                         }
                     }
@@ -769,8 +750,15 @@
                 for (let corner1 of firstCorners) {
                     for (let row = -1; row <= this.rows; row++) {
                         for (let col = -1; col <= this.cols; col++) {
+                            // 跳过第一个转折点、起点和终点
                             if ((row === corner1.row && col === corner1.col) ||
-                                (row === row1 && col === col1)) continue;
+                                (row === row1 && col === col1) ||
+                                (row === row2 && col === col2)) continue;
+                            
+                            // 检查三个条件：
+                            // 1. 第一个转折点到第二个转折点可达
+                            // 2. 第二个转折点到终点可达
+                            // 3. 第二个转折点是有效的（边界外或空位）
                             if (this.canDirectConnect(corner1.row, corner1.col, row, col) &&
                                 this.canDirectConnect(row, col, row2, col2) &&
                                 this.isValidCorner(row, col)) {
