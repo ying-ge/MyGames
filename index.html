@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="连连看消除游戏">
     <title>连连看消除游戏</title>
     <style>
         * {
@@ -353,18 +354,21 @@
                     hard: { rows: 8, cols: 8, pairs: 32 }       // 8×8=64格，32对（减少复杂度）
                 };
 
-                // 预计算的棋盘布局缓存
+                // 预计算的棋盘布局缓存（已优化：减少数量以节省内存）
                 this.precomputedBoards = {
                     easy: [],
                     medium: [],
                     hard: []
                 };
+                
+                // 事件处理器引用（用于清理）
+                this.boardClickHandler = null;
 
                 this.initializeEventListeners();
                 this.loadImagePaths();
                 
-                // 在后台预计算布局（不阻塞界面）
-                this.precomputeBoards();
+                // 延迟预计算，优先加载界面（可选：可以完全禁用预计算以节省内存）
+                setTimeout(() => this.precomputeBoards(), 100);
             }
 
             loadImagePaths() {
@@ -671,12 +675,13 @@
             }
 
             // 预计算棋盘布局（在后台进行，减少数量以节省内存）
+            // 如果内存紧张，可以将所有值设为0来完全禁用预计算
             precomputeBoards() {
                 const difficulties = ['easy', 'medium', 'hard'];
                 const boardsPerDifficulty = {
-                    easy: 3,     // 简单难度预计算3个（减少内存占用）
-                    medium: 2,   // 中等难度预计算2个（减少内存占用）
-                    hard: 1      // 困难难度预计算1个（减少内存占用）
+                    easy: 2,     // 简单难度预计算2个（进一步减少内存占用）
+                    medium: 1,   // 中等难度预计算1个（进一步减少内存占用）
+                    hard: 0      // 困难难度不预计算（实时生成，节省内存）
                 };
 
                 difficulties.forEach((difficulty, index) => {
@@ -859,6 +864,9 @@
                 boardElement.innerHTML = '';
                 boardElement.style.gridTemplateColumns = `repeat(${this.cols}, 1fr)`;
 
+                // 使用DocumentFragment减少DOM重排，提升性能
+                const fragment = document.createDocumentFragment();
+
                 for (let i = 0; i < this.rows; i++) {
                     for (let j = 0; j < this.cols; j++) {
                         const tile = document.createElement('div');
@@ -870,39 +878,18 @@
                             const img = document.createElement('img');
                             img.src = this.board[i][j];
                             img.alt = 'Game Tile';
+                            // 使用loading="lazy"实现懒加载，减少初始加载时间
+                            img.loading = 'lazy';
+                            // 预设置样式，减少重排
+                            img.style.width = '100%';
+                            img.style.height = '100%';
+                            img.style.objectFit = 'cover';
+                            img.style.borderRadius = '6px';
 
-                            // 如果图片加载失败，使用emoji作为替代
-                            // 确保相同路径的图片显示相同的emoji，以保持游戏逻辑正确
+                            // 图片加载失败时隐藏图片（不显示emoji，直接隐藏）
                             img.onerror = () => {
                                 img.style.display = 'none';
-                                const emoji = document.createElement('div');
-                                emoji.style.fontSize = '30px';
-                                emoji.style.display = 'flex';
-                                emoji.style.alignItems = 'center';
-                                emoji.style.justifyContent = 'center';
-                                emoji.style.width = '100%';
-                                emoji.style.height = '100%';
-                                
-                                // 根据图片路径生成固定的emoji，确保相同路径显示相同emoji
-                                const emojis = ['🍎', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍒', '🌟', '🎈', '🎨', '🎯', '🎪', '🎭', '🎬', '🎮', '🎯', '🎲', '🎸', '🎺', '🎻', '🎤', '🎧', '🎵', '🎶', '🎼', '🎹', '🎷', '🎸', '🎺'];
-                                // 使用图片路径的哈希值来选择emoji，确保相同路径总是显示相同emoji
-                                let hash = 0;
-                                const imagePath = this.board[i][j];
-                                for (let k = 0; k < imagePath.length; k++) {
-                                    hash = ((hash << 5) - hash) + imagePath.charCodeAt(k);
-                                    hash = hash & hash; // 转换为32位整数
-                                }
-                                const emojiIndex = Math.abs(hash) % emojis.length;
-                                emoji.textContent = emojis[emojiIndex];
-                                tile.appendChild(emoji);
-                            };
-
-                            img.onload = () => {
-                                // 图片加载成功，确保样式正确
-                                img.style.width = '100%';
-                                img.style.height = '100%';
-                                img.style.objectFit = 'cover';
-                                img.style.borderRadius = '6px';
+                                tile.classList.add('empty');
                             };
 
                             tile.appendChild(img);
@@ -910,9 +897,26 @@
                             tile.classList.add('empty');
                         }
 
-                        tile.addEventListener('click', () => this.handleTileClick(i, j));
-                        boardElement.appendChild(tile);
+                        fragment.appendChild(tile);
                     }
+                }
+                
+                // 一次性添加所有元素，减少DOM操作
+                boardElement.appendChild(fragment);
+                
+                // 使用事件委托，减少事件监听器数量（大幅减少内存占用）
+                if (!this.boardClickHandler) {
+                    this.boardClickHandler = (e) => {
+                        const tile = e.target.closest('.tile');
+                        if (tile && !tile.classList.contains('empty')) {
+                            const row = parseInt(tile.dataset.row);
+                            const col = parseInt(tile.dataset.col);
+                            if (!isNaN(row) && !isNaN(col)) {
+                                this.handleTileClick(row, col);
+                            }
+                        }
+                    };
+                    boardElement.addEventListener('click', this.boardClickHandler);
                 }
             }
 
@@ -1546,7 +1550,18 @@
                 this.stopTimer();
                 this.gameStarted = false;
                 this.selectedTiles = [];
-                document.getElementById('gameBoard').innerHTML = '';
+                
+                // 清理DOM和事件监听器，释放内存
+                const boardElement = document.getElementById('gameBoard');
+                if (this.boardClickHandler) {
+                    boardElement.removeEventListener('click', this.boardClickHandler);
+                    this.boardClickHandler = null;
+                }
+                boardElement.innerHTML = '';
+                
+                // 清理预计算缓存（可选：如果内存紧张）
+                // this.precomputedBoards = { easy: [], medium: [], hard: [] };
+                
                 this.startGame();
             }
 
