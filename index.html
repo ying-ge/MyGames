@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Games - 游戏合集</title>
+    <title>FigureYa Games - 游戏合集</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Product+Sans:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap');
+
         * {
             margin: 0;
             padding: 0;
@@ -12,94 +14,235 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Product Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
             min-height: 100vh;
-            padding: 20px;
+            color: #202124;
+        }
+
+        .google-header {
+            background: white;
+            border-bottom: 1px solid #e8eaed;
+            padding: 16px 24px;
+            box-shadow: 0 1px 6px rgba(32,33,36,.1);
+        }
+
+        .google-nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 24px;
+            font-weight: 500;
+            color: #202124;
+        }
+
+        .logo .emoji {
+            margin-right: 8px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: #5f6368;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: #202124;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
+            padding: 32px 24px;
         }
 
-        header {
+        .hero-section {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 48px;
+            padding: 48px 0;
         }
 
-        h1 {
-            color: white;
-            font-size: 3em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        .hero-title {
+            font-size: 48px;
+            font-weight: 400;
+            color: #202124;
+            margin-bottom: 16px;
+            letter-spacing: -0.5px;
         }
 
-        .subtitle {
-            color: rgba(255,255,255,0.9);
-            font-size: 1.2em;
+        .hero-subtitle {
+            font-size: 20px;
+            color: #5f6368;
+            font-weight: 400;
+            line-height: 1.5;
+            max-width: 600px;
+            margin: 0 auto;
         }
 
         .games-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin-top: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 24px;
+            margin-top: 48px;
         }
 
         .game-card {
             background: white;
-            border-radius: 15px;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
             cursor: pointer;
+            border: 1px solid #e8eaed;
         }
 
         .game-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border-color: #dadce0;
         }
 
         .game-image {
             width: 100%;
-            height: 250px;
+            height: 240px;
             object-fit: cover;
-            background: #f5f5f5;
+            background: #f8f9fa;
+            transition: transform 0.3s ease;
+        }
+
+        .game-card:hover .game-image {
+            transform: scale(1.05);
         }
 
         .game-info {
-            padding: 20px;
+            padding: 24px;
         }
 
         .game-title {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
+            font-size: 22px;
+            font-weight: 500;
+            color: #202124;
+            margin-bottom: 12px;
+            font-family: 'Product Sans', sans-serif;
         }
 
         .game-description {
-            color: #666;
+            color: #5f6368;
             line-height: 1.6;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+            font-size: 15px;
         }
 
         .play-button {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            background: #1a73e8;
             color: white;
             border: none;
-            padding: 12px 25px;
-            border-radius: 25px;
-            font-size: 1em;
-            font-weight: bold;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
-            transition: background 0.3s ease;
-            display: inline-block;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            font-family: 'Product Sans', sans-serif;
         }
 
         .play-button:hover {
-            background: linear-gradient(45deg, #ee5a24, #ff6b6b);
+            background: #1765cc;
+            box-shadow: 0 2px 8px rgba(26,115,232,0.3);
+        }
+
+        .play-button::before {
+            content: "▶";
+            margin-right: 8px;
+            font-size: 12px;
+        }
+
+        .footer {
+            background: white;
+            border-top: 1px solid #e8eaed;
+            padding: 32px 24px;
+            margin-top: 64px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+            color: #5f6368;
+            font-size: 14px;
+        }
+
+        .tag-container {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .tag {
+            background: #e8f0fe;
+            color: #1967d2;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .references-section {
+            background: #f8f9fa;
+            padding: 48px 24px;
+            border-top: 1px solid #e8eaed;
+        }
+
+        .references-title {
+            font-size: 24px;
+            font-weight: 500;
+            color: #202124;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .reference-item {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            border: 1px solid #e8eaed;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        .reference-text {
+            color: #5f6368;
+            line-height: 1.6;
+            font-size: 15px;
+            margin: 0;
+        }
+
+        .reference-link {
+            color: #1967d2;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .reference-link:hover {
+            color: #1a73e8;
+            text-decoration: underline;
         }
 
         @media (max-width: 768px) {
@@ -107,41 +250,96 @@
                 grid-template-columns: 1fr;
             }
 
-            h1 {
-                font-size: 2em;
+            .hero-title {
+                font-size: 36px;
+            }
+
+            .hero-subtitle {
+                font-size: 18px;
+            }
+
+            .container {
+                padding: 24px 16px;
+            }
+
+            .google-nav {
+                flex-direction: column;
+                gap: 16px;
             }
         }
     </style>
 </head>
 <body>
+    <div class="google-header">
+        <div class="google-nav">
+            <div class="logo">
+                <span class="emoji">🎮</span>
+                FigureYa Games
+            </div>
+            <div class="nav-links">
+                <a href="#" class="nav-link">游戏</a>
+                <a href="#" class="nav-link">关于</a>
+                <a href="#" class="nav-link">文档</a>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
-        <header>
-            <h1>🎮 My Games</h1>
-            <p class="subtitle">选择一个游戏开始游玩</p>
-        </header>
+        <div class="hero-section">
+            <h1 class="hero-title">FigureYa Games</h1>
+            <p class="hero-subtitle">探索学术与娱乐的完美融合，在游戏中学习，在学习中成长</p>
+        </div>
 
         <div class="games-grid">
             <div class="game-card" onclick="openGame('game_linkup')">
-                <img src="png/game_linkup.png" alt="连连看游戏" class="game-image">
+                <img src="png_compressed/game_linkup.webp" alt="连连看游戏" class="game-image">
                 <div class="game-info">
+                    <div class="tag-container">
+                        <span class="tag">益智</span>
+                        <span class="tag">视觉</span>
+                        <span class="tag">休闲</span>
+                    </div>
                     <div class="game-title">连连看</div>
                     <div class="game-description">
-                        经典的连连看消除游戏，通过连接相同的图案来消除它们，考验你的观察力和反应能力。
+                        用FigureYa缩略图做的消除类游戏连连看，通过连接相同的图案来消除它们，考验你的观察力和反应能力。
                     </div>
                     <span class="play-button">开始游戏</span>
                 </div>
             </div>
 
             <div class="game-card" onclick="openGame('game_typing')">
-                <img src="png/game_typing.png" alt="打字游戏" class="game-image">
+                <img src="png_compressed/game_typing.webp" alt="打字游戏" class="game-image">
                 <div class="game-info">
+                    <div class="tag-container">
+                        <span class="tag">教育</span>
+                        <span class="tag">词汇</span>
+                        <span class="tag">技能</span>
+                    </div>
                     <div class="game-title">打字游戏</div>
                     <div class="game-description">
-                        提高打字速度和准确性的打字练习游戏，通过快速的键盘输入来挑战高分。
+                        FigureYa关键词打字游戏：大学基础词汇 + 研究生进阶词汇，提升打字速度，助力毕业论文写作！
                     </div>
                     <span class="play-button">开始游戏</span>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div class="references-section">
+        <div class="container">
+            <h2 class="references-title">参考文献</h2>
+            <div class="reference-item">
+                <p class="reference-text">
+                    Xiaofan Lu, et al. (2025). FigureYa: A Standardized Visualization Framework for Enhancing Biomedical Data Interpretation and Research Efficiency. <i>iMetaMed</i>.
+                    <a href="https://doi.org/10.1002/imm3.70005" target="_blank" rel="noopener noreferrer" class="reference-link">https://doi.org/10.1002/imm3.70005</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="footer-content">
+            <p>© 2024 FigureYa Games. 专注学术游戏化学习体验.</p>
         </div>
     </div>
 
