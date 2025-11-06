@@ -358,7 +358,7 @@
             }
 
             loadImagePaths() {
-                // 实际的图片文件列表
+                // 实际的图片文件列表（已清理不存在的文件）
                 this.imagePaths = [
                     'gallery_compress/FigureYa10chromosomeV2_update.webp',
                     'gallery_compress/FigureYa11bubble.webp',
@@ -367,7 +367,6 @@
                     'gallery_compress/FigureYa101PCA.webp',
                     'gallery_compress/FigureYa102multipanelROC.webp',
                     'gallery_compress/FigureYa103coAbundant.webp',
-                    'gallery_compress/FigureYa104GEOmining.webp',
                     'gallery_compress/FigureYa105GDSC.webp',
                     'gallery_compress/FigureYa106immunotherapy.webp',
                     'gallery_compress/FigureYa107ChIPheatmap.webp',
@@ -396,7 +395,6 @@
                     'gallery_compress/FigureYa130coxSVM.webp',
                     'gallery_compress/FigureYa131CMap_update.webp',
                     'gallery_compress/FigureYa132alteration.webp',
-                    'gallery_compress/FigureYa133m6Apeak_update.webp',
                     'gallery_compress/FigureYa135multiVolcano.webp',
                     'gallery_compress/FigureYa136fgsea.webp',
                     'gallery_compress/FigureYa138NiceCalibration.webp',
@@ -463,14 +461,69 @@
             initializeGame() {
                 // 生成棋盘，确保有足够的可连接配对且可解
                 let attempts = 0;
-                let maxAttempts = 100;
-                do {
-                    this.board = this.createBoard();
-                    attempts++;
-                } while (attempts < maxAttempts && (!this.hasEnoughConnectablePairs() || !this.isSolvable()));
+                let maxAttempts = 150;
+                let bestBoard = null;
+                let bestScore = 0;
                 
-                if (attempts >= maxAttempts) {
-                    console.warn('达到最大尝试次数，使用当前棋盘');
+                // 尝试生成可解的棋盘
+                while (attempts < maxAttempts) {
+                    const testBoard = this.createBoard();
+                    const tempBoard = this.board;
+                    this.board = testBoard;
+                    
+                    const hasEnough = this.hasEnoughConnectablePairs();
+                    const isSolvable = this.isSolvable();
+                    
+                    // 如果棋盘可解，直接使用
+                    if (hasEnough && isSolvable) {
+                        this.board = testBoard;
+                        break;
+                    }
+                    
+                    // 记录最好的棋盘（即使不完全可解，也记录可连接配对最多的）
+                    if (hasEnough) {
+                        const pairs = new Map();
+                        for (let i = 0; i < testBoard.length; i++) {
+                            for (let j = 0; j < testBoard[i].length; j++) {
+                                if (testBoard[i][j]) {
+                                    const image = testBoard[i][j];
+                                    if (!pairs.has(image)) {
+                                        pairs.set(image, []);
+                                    }
+                                    pairs.get(image).push({row: i, col: j});
+                                }
+                            }
+                        }
+                        let connectableCount = 0;
+                        // 使用 testBoard 检查连接性
+                        for (const [image, positions] of pairs.entries()) {
+                            for (let i = 0; i < positions.length; i++) {
+                                for (let j = i + 1; j < positions.length; j++) {
+                                    if (this.canConnectWithBoard(testBoard, positions[i].row, positions[i].col, positions[j].row, positions[j].col)) {
+                                        connectableCount++;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (connectableCount > bestScore) {
+                            bestScore = connectableCount;
+                            bestBoard = testBoard.map(row => row.map(cell => cell));
+                        }
+                    }
+                    
+                    this.board = tempBoard;
+                    attempts++;
+                }
+                
+                // 如果达到最大尝试次数仍未找到完全可解的棋盘，使用最好的棋盘
+                if (attempts >= maxAttempts && bestBoard) {
+                    this.board = bestBoard;
+                    console.warn('使用最佳可用棋盘（可连接配对数：' + bestScore + '）');
+                } else if (attempts >= maxAttempts) {
+                    // 如果连好的棋盘都没有，重新生成一个
+                    this.board = this.createBoard();
+                    console.warn('达到最大尝试次数，使用随机棋盘');
                 }
                 
                 this.renderBoard();
@@ -547,6 +600,7 @@
                             img.alt = 'Game Tile';
 
                             // 如果图片加载失败，使用emoji作为替代
+                            // 确保相同路径的图片显示相同的emoji，以保持游戏逻辑正确
                             img.onerror = () => {
                                 img.style.display = 'none';
                                 const emoji = document.createElement('div');
@@ -556,8 +610,18 @@
                                 emoji.style.justifyContent = 'center';
                                 emoji.style.width = '100%';
                                 emoji.style.height = '100%';
-                                const emojis = ['🍎', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍒', '🌟', '🎈', '🎨', '🎯'];
-                                emoji.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                                
+                                // 根据图片路径生成固定的emoji，确保相同路径显示相同emoji
+                                const emojis = ['🍎', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍒', '🌟', '🎈', '🎨', '🎯', '🎪', '🎭', '🎬', '🎮', '🎯', '🎲', '🎸', '🎺', '🎻', '🎤', '🎧', '🎵', '🎶', '🎼', '🎹', '🎷', '🎸', '🎺'];
+                                // 使用图片路径的哈希值来选择emoji，确保相同路径总是显示相同emoji
+                                let hash = 0;
+                                const imagePath = this.board[i][j];
+                                for (let k = 0; k < imagePath.length; k++) {
+                                    hash = ((hash << 5) - hash) + imagePath.charCodeAt(k);
+                                    hash = hash & hash; // 转换为32位整数
+                                }
+                                const emojiIndex = Math.abs(hash) % emojis.length;
+                                emoji.textContent = emojis[emojiIndex];
                                 tile.appendChild(emoji);
                             };
 
@@ -1034,8 +1098,13 @@
                 return this.solveBoard(boardCopy);
             }
 
-            // 递归回溯算法解决棋盘
-            solveBoard(board) {
+            // 递归回溯算法解决棋盘（带深度限制和优化）
+            solveBoard(board, depth = 0, maxDepth = 50) {
+                // 防止递归过深
+                if (depth > maxDepth) {
+                    return false;
+                }
+
                 // 检查是否所有图片都已消除
                 let hasTiles = false;
                 for (let i = 0; i < board.length; i++) {
@@ -1054,6 +1123,7 @@
 
                 // 找到所有可连接的配对
                 const connectablePairs = [];
+                
                 for (let r1 = 0; r1 < board.length; r1++) {
                     for (let c1 = 0; c1 < board[r1].length; c1++) {
                         if (board[r1][c1] === null) continue;
@@ -1078,8 +1148,23 @@
                     return false;
                 }
 
-                // 尝试消除每个可连接的配对
+                // 尝试消除每个可连接的配对（优先尝试直接连接的配对）
+                // 先尝试直接连接的配对（0个转折点）
+                const directPairs = [];
+                const otherPairs = [];
+                
                 for (const pair of connectablePairs) {
+                    if (this.canDirectConnectWithBoard(board, pair.r1, pair.c1, pair.r2, pair.c2)) {
+                        directPairs.push(pair);
+                    } else {
+                        otherPairs.push(pair);
+                    }
+                }
+                
+                // 先尝试直接连接的配对
+                const sortedPairs = [...directPairs, ...otherPairs];
+                
+                for (const pair of sortedPairs) {
                     // 创建新的棋盘状态
                     const newBoard = board.map(row => row.map(cell => cell));
                     
@@ -1088,12 +1173,47 @@
                     newBoard[pair.r2][pair.c2] = null;
                     
                     // 递归检查剩余棋盘是否可解
-                    if (this.solveBoard(newBoard)) {
+                    if (this.solveBoard(newBoard, depth + 1, maxDepth)) {
                         return true;
                     }
                 }
 
                 return false; // 所有尝试都失败，棋盘不可解
+            }
+
+            // 使用指定棋盘状态检查是否可以直接连接
+            canDirectConnectWithBoard(board, row1, col1, row2, col2) {
+                // 同一行：水平连接
+                if (row1 === row2) {
+                    const start = Math.min(col1, col2);
+                    const end = Math.max(col1, col2);
+
+                    for (let col = start + 1; col < end; col++) {
+                        if (row1 >= 0 && row1 < board.length && col >= 0 && col < board[row1].length) {
+                            if (board[row1][col] !== null) {
+                                return false;
+                            }
+                        }
+                    }
+                    return true;
+                }
+
+                // 同一列：垂直连接
+                if (col1 === col2) {
+                    const start = Math.min(row1, row2);
+                    const end = Math.max(row1, row2);
+
+                    for (let row = start + 1; row < end; row++) {
+                        if (row >= 0 && row < board.length && col1 >= 0 && col1 < board[row].length) {
+                            if (board[row][col1] !== null) {
+                                return false;
+                            }
+                        }
+                    }
+                    return true;
+                }
+
+                return false;
             }
 
             // 使用指定棋盘状态检查是否可以连接
