@@ -1,0 +1,1660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="连连看消除游戏">
+    <title>连连看消除游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 10px;
+        }
+
+        .game-controls {
+            background: white;
+            padding: 15px 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .difficulty-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .difficulty-selector label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .difficulty-btn {
+            padding: 8px 16px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .difficulty-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .difficulty-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .game-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .timer {
+            font-size: 1.2em;
+            color: #e74c3c;
+        }
+
+        .score {
+            font-size: 1.2em;
+            color: #27ae60;
+        }
+
+        .moves {
+            font-size: 1.2em;
+            color: #3498db;
+        }
+
+        .game-container {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .game-board {
+            display: grid;
+            gap: 6px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .tile {
+            width: 80px;
+            height: 80px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        @media (max-width: 768px) {
+            .tile {
+                width: 60px;
+                height: 60px;
+            }
+        }
+
+        .tile:hover:not(.empty) {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            border-color: #667eea;
+        }
+
+        .tile.selected {
+            border-color: #e74c3c;
+            border-width: 3px;
+            transform: translateY(-8px);
+            box-shadow: 0 8px 20px rgba(231, 76, 60, 0.4);
+        }
+
+        .tile.matched {
+            animation: matchAnimation 0.5s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .tile.empty {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        @keyframes matchAnimation {
+            0% {
+                transform: scale(1) rotate(0deg);
+            }
+            50% {
+                transform: scale(1.2) rotate(180deg);
+            }
+            100% {
+                transform: scale(0) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .tile img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            color: white;
+            font-size: 16px;
+        }
+
+        .btn-start {
+            background: #27ae60;
+        }
+
+        .btn-start:hover {
+            background: #2ecc71;
+            transform: translateY(-2px);
+        }
+
+        .btn-hint {
+            background: #f39c12;
+        }
+
+        .btn-hint:hover {
+            background: #e67e22;
+            transform: translateY(-2px);
+        }
+
+        .btn-restart {
+            background: #e74c3c;
+        }
+
+        .btn-restart:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        .game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .game-over h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .game-over p {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+        }
+
+        .connection-line {
+            position: absolute;
+            background: #e74c3c;
+            z-index: 100;
+            pointer-events: none;
+            border-radius: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .tile {
+                width: 60px;
+                height: 60px;
+            }
+
+            .game-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .difficulty-selector {
+                justify-content: center;
+            }
+
+            .game-info {
+                justify-content: space-around;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🎮 连连看消除游戏</h1>
+        <p>找出相同的图片，用最多3条直线连接它们！</p>
+    </header>
+
+    <section class="game-controls">
+        <div class="difficulty-selector">
+            <label>难度级别：</label>
+            <button class="difficulty-btn active" data-level="easy">简单</button>
+            <button class="difficulty-btn" data-level="medium">中等</button>
+            <button class="difficulty-btn" data-level="hard">困难</button>
+                    </div>
+
+        <div class="game-info">
+            <div class="timer">时间: <span id="time">00:00</span></div>
+            <div class="score">得分: <span id="score">0</span></div>
+            <div class="moves">步数: <span id="moves">0</span></div>
+        </div>
+    </section>
+
+    <section class="game-container">
+        <div class="game-board" id="gameBoard"></div>
+    </section>
+
+    <section class="action-buttons">
+        <button class="btn btn-start" id="startBtn">开始游戏</button>
+        <button class="btn btn-hint" id="hintBtn">提示 (3)</button>
+        <button class="btn btn-restart" id="restartBtn">重新开始</button>
+    </section>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="game-over" id="gameOver">
+        <h2 id="gameOverTitle">游戏结束！</h2>
+        <p id="gameOverMessage"></p>
+        <button class="btn btn-start" onclick="restartGame()">再玩一次</button>
+    </div>
+
+    <script>
+        class LianLianKan {
+            constructor() {
+                this.board = [];
+                this.rows = 0;
+                this.cols = 0;
+                this.selectedTiles = [];
+                this.score = 0;
+                this.moves = 0;
+                this.hints = 3;
+                this.timeElapsed = 0;
+                this.timer = null;
+                this.gameStarted = false;
+                this.difficulty = 'easy';
+                this.imagePaths = [];
+                this.availableImages = [];
+
+                this.difficultySettings = {
+                    easy: { rows: 4, cols: 6, pairs: 12 },      // 4×6=24格，12对
+                    medium: { rows: 6, cols: 8, pairs: 24 },    // 6×8=48格，24对
+                    hard: { rows: 8, cols: 8, pairs: 32 }       // 8×8=64格，32对（减少复杂度）
+                };
+
+                // 预计算的棋盘布局缓存（已优化：减少数量以节省内存）
+                // 困难模式的5种布局已硬编码，页面加载时直接使用，无需计算
+                this.precomputedBoards = {
+                    easy: [],
+                    medium: [],
+                    hard: this.getHardModeBoards() // 从硬编码布局中获取
+                };
+                
+                // 事件处理器引用（用于清理）
+                this.boardClickHandler = null;
+
+                this.initializeEventListeners();
+                this.loadImagePaths();
+                
+                // 延迟预计算，优先加载界面
+                // 困难模式布局已硬编码，无需预计算
+                setTimeout(() => this.precomputeBoards(), 100);
+            }
+
+            loadImagePaths() {
+                // 包含所有186个图片的完整列表，每次游戏随机选择
+                this.imagePaths = [
+                    'gallery_compress/FigureYa106immunotherapy.webp',
+                    'gallery_compress/FigureYa107ChIPheatmap.webp',
+                    'gallery_compress/FigureYa108RNAseqChIP.webp',
+                    'gallery_compress/FigureYa10chromosomeV2_update.webp',
+                    'gallery_compress/FigureYa111markerGene.webp',
+                    'gallery_compress/FigureYa112venn.webp',
+                    'gallery_compress/FigureYa114ternaryCluster.webp',
+                    'gallery_compress/FigureYa115cofactor.webp',
+                    'gallery_compress/FigureYa121MethCGIcluster.webp',
+                    'gallery_compress/FigureYa123mutVSexpr.webp',
+                    'gallery_compress/FigureYa124AssociationHeatmap.webp',
+                    'gallery_compress/FigureYa125FishertestV2.webp',
+                    'gallery_compress/FigureYa126CorrelationHeatmap.webp',
+                    'gallery_compress/FigureYa127HeatmapPie.webp',
+                    'gallery_compress/FigureYa131CMap_update.webp',
+                    'gallery_compress/FigureYa132alteration.webp',
+                    'gallery_compress/FigureYa135multiVolcano.webp',
+                    'gallery_compress/FigureYa139TMB_titv.webp',
+                    'gallery_compress/FigureYa13GSEA_Java_update.webp',
+                    'gallery_compress/FigureYa140mosaicpie.webp',
+                    'gallery_compress/FigureYa141risk.webp',
+                    'gallery_compress/FigureYa142circosBar.webp',
+                    'gallery_compress/FigureYa143survCor.webp',
+                    'gallery_compress/FigureYa144DiagHeatmap.webp',
+                    'gallery_compress/FigureYa145target.webp',
+                    'gallery_compress/FigureYa147Plus_STRING.webp',
+                    'gallery_compress/FigureYa148SimpleDendrogram.webp',
+                    'gallery_compress/FigureYa149rankHeatmap.webp',
+                    'gallery_compress/FigureYa14circos.webp',
+                    'gallery_compress/FigureYa152DouleCorPlot.webp',
+                    'gallery_compress/FigureYa153ccgraph.webp',
+                    'gallery_compress/FigureYa157ChIPpvalue.webp',
+                    'gallery_compress/FigureYa158MutationPattern.webp',
+                    'gallery_compress/FigureYa15WGCNA.webp',
+                    'gallery_compress/FigureYa160scGSVA.webp',
+                    'gallery_compress/FigureYa161stemness.webp',
+                    'gallery_compress/FigureYa162boxViolin.webp',
+                    'gallery_compress/FigureYa163twoVarCor_update.webp',
+                    'gallery_compress/FigureYa164PCA3D.webp',
+                    'gallery_compress/FigureYa168legoplot.webp',
+                    'gallery_compress/FigureYa169sigHeatmap.webp',
+                    'gallery_compress/FigureYa170ImmuLncRNA.webp',
+                    'gallery_compress/FigureYa173fancybar.webp',
+                    'gallery_compress/FigureYa175quadrant.webp',
+                    'gallery_compress/FigureYa176BlandAltman.webp',
+                    'gallery_compress/FigureYa177RNAvelocity.webp',
+                    'gallery_compress/FigureYa179AMDAplot.webp',
+                    'gallery_compress/FigureYa17WGCNA_heatmap.webp',
+                    'gallery_compress/FigureYa180FGAplotV2.webp',
+                    'gallery_compress/FigureYa181multiCorrelation.webp',
+                    'gallery_compress/FigureYa182RFSurvV2.webp',
+                    'gallery_compress/FigureYa186swimmerplot.webp',
+                    'gallery_compress/FigureYa18oncoplot_update.webp',
+                    'gallery_compress/FigureYa194pySCENIC.webp',
+                    'gallery_compress/FigureYa195PanPaire.webp',
+                    'gallery_compress/FigureYa196PanPie.webp',
+                    'gallery_compress/FigureYa196Plus_PanPie.webp',
+                    'gallery_compress/FigureYa199crosslink.webp',
+                    'gallery_compress/FigureYa19Lollipop.webp',
+                    'gallery_compress/FigureYa200pairwiseAUC.webp',
+                    'gallery_compress/FigureYa202consensusGene.webp',
+                    'gallery_compress/FigureYa203ComBat.webp',
+                    'gallery_compress/FigureYa204PCAscore.webp',
+                    'gallery_compress/FigureYa205immunophenoscore_update.webp',
+                    'gallery_compress/FigureYa206scHeatmap.webp',
+                    'gallery_compress/FigureYa208FPI.webp',
+                    'gallery_compress/FigureYa209batchEnrich.webp',
+                    'gallery_compress/FigureYa210survivalScape.webp',
+                    'gallery_compress/FigureYa211multiCohortImmSubtype.webp',
+                    'gallery_compress/FigureYa212drugTargetV2.webp',
+                    'gallery_compress/FigureYa213customizeHeatmap.webp',
+                    'gallery_compress/FigureYa214KEGG_hierarchyV2.webp',
+                    'gallery_compress/FigureYa215DNAage.webp',
+                    'gallery_compress/FigureYa219GMM.webp',
+                    'gallery_compress/FigureYa222PCAgene.webp',
+                    'gallery_compress/FigureYa224scMarker.webp',
+                    'gallery_compress/FigureYa225GiViTl.webp',
+                    'gallery_compress/FigureYa227boxdensity.webp',
+                    'gallery_compress/FigureYa228linkCor.webp',
+                    'gallery_compress/FigureYa229PCOA.webp',
+                    'gallery_compress/FigureYa230immunelandscape.webp',
+                    'gallery_compress/FigureYa232scRankHeatmap.webp',
+                    'gallery_compress/FigureYa233genepair.webp',
+                    'gallery_compress/FigureYa234panImmune.webp',
+                    'gallery_compress/FigureYa235scDEG.webp',
+                    'gallery_compress/FigureYa236circGroup.webp',
+                    'gallery_compress/FigureYa238corRiskMut.webp',
+                    'gallery_compress/FigureYa239ST_PDAC.webp',
+                    'gallery_compress/FigureYa240CRISPR.webp',
+                    'gallery_compress/FigureYa242corMethExpr.webp',
+                    'gallery_compress/FigureYa243scMarkerGroupHeatmap.webp',
+                    'gallery_compress/FigureYa244PCAPlot.webp',
+                    'gallery_compress/FigureYa245VarDecompose.webp',
+                    'gallery_compress/FigureYa248MutLandscape.webp',
+                    'gallery_compress/FigureYa249Regulon.webp',
+                    'gallery_compress/FigureYa252mclust.webp',
+                    'gallery_compress/FigureYa254scViolin.webp',
+                    'gallery_compress/FigureYa255TIME.webp',
+                    'gallery_compress/FigureYa256panelLink.webp',
+                    'gallery_compress/FigureYa259circLink.webp',
+                    'gallery_compress/FigureYa25Plus_Sankey_py.webp',
+                    'gallery_compress/FigureYa261circGene.webp',
+                    'gallery_compress/FigureYa262GDC.webp',
+                    'gallery_compress/FigureYa263panDiff.webp',
+                    'gallery_compress/FigureYa264epiImmune.webp',
+                    'gallery_compress/FigureYa266panHeatmap.webp',
+                    'gallery_compress/FigureYa267scCellChat.webp',
+                    'gallery_compress/FigureYa26circos_R.webp',
+                    'gallery_compress/FigureYa272scBulkCCCI.webp',
+                    'gallery_compress/FigureYa275scAUCell.webp',
+                    'gallery_compress/FigureYa277Immunomodulator.webp',
+                    'gallery_compress/FigureYa280TMEofSTS.webp',
+                    'gallery_compress/FigureYa284pairwiseLogrank.webp',
+                    'gallery_compress/FigureYa285scRNA_monocle.webp',
+                    'gallery_compress/FigureYa286ExprCorORR.webp',
+                    'gallery_compress/FigureYa288MutualExclusivity.webp',
+                    'gallery_compress/FigureYa289TILSig.webp',
+                    'gallery_compress/FigureYa290BarGraph.webp',
+                    'gallery_compress/FigureYa291PancanProgSigatureV2.webp',
+                    'gallery_compress/FigureYa296VIPER.webp',
+                    'gallery_compress/FigureYa2ggtree+pheatmap+msa.webp',
+                    'gallery_compress/FigureYa300pancanCor.webp',
+                    'gallery_compress/FigureYa301scCoExpr.webp',
+                    'gallery_compress/FigureYa302NTPPAM.webp',
+                    'gallery_compress/FigureYa303panCircos.webp',
+                    'gallery_compress/FigureYa305PMAPscore.webp',
+                    'gallery_compress/FigureYa306slingshot.webp',
+                    'gallery_compress/FigureYa307CNVHeatmap.webp',
+                    'gallery_compress/FigureYa309cell2location.webp',
+                    'gallery_compress/FigureYa30nomogram_update.webp',
+                    'gallery_compress/FigureYa310CPDBChordGramV2.webp',
+                    'gallery_compress/FigureYa311PAM50Heatmap.webp',
+                    'gallery_compress/FigureYa312CellPreference.webp',
+                    'gallery_compress/FigureYa31lasso_update.webp',
+                    'gallery_compress/FigureYa320ClontypeHeatmap.webp',
+                    'gallery_compress/FigureYa323STpathseq.webp',
+                    'gallery_compress/FigureYa33DCA_update.webp',
+                    'gallery_compress/FigureYa36nSurvV3.webp',
+                    'gallery_compress/FigureYa37correlationV2_update.webp',
+                    'gallery_compress/FigureYa38PCA.webp',
+                    'gallery_compress/FigureYa39bar.webp',
+                    'gallery_compress/FigureYa3genomeView.webp',
+                    'gallery_compress/FigureYa40lineage.webp',
+                    'gallery_compress/FigureYa42oncoprintV2_update.webp',
+                    'gallery_compress/FigureYa43ManhattanV2.webp',
+                    'gallery_compress/FigureYa44profile.webp',
+                    'gallery_compress/FigureYa52GOplot.webp',
+                    'gallery_compress/FigureYa55panCancer_violinV2.webp',
+                    'gallery_compress/FigureYa55plus_pancancer_boxplot.webp',
+                    'gallery_compress/FigureYa57profile_1bw.webp',
+                    'gallery_compress/FigureYa59volcanoV2.webp',
+                    'gallery_compress/FigureYa5bubbles.webp',
+                    'gallery_compress/FigureYa60GSEA_clusterProfilerV2.webp',
+                    'gallery_compress/FigureYa61GSVA.webp',
+                    'gallery_compress/FigureYa62twoAxis.webp',
+                    'gallery_compress/FigureYa64triangle.webp',
+                    'gallery_compress/FigureYa67phastCons.webp',
+                    'gallery_compress/FigureYa68friendsV2.webp',
+                    'gallery_compress/FigureYa69cancerSubtype.webp',
+                    'gallery_compress/FigureYa6rHRsV2.webp',
+                    'gallery_compress/FigureYa70mutationEvents.webp',
+                    'gallery_compress/FigureYa71ssGSEA_update.webp',
+                    'gallery_compress/FigureYa73batchCorrelation.webp',
+                    'gallery_compress/FigureYa74OmicCircos.webp',
+                    'gallery_compress/FigureYa75bubble_volcano.webp',
+                    'gallery_compress/FigureYa76corrgram.webp',
+                    'gallery_compress/FigureYa78gganatogram.webp',
+                    'gallery_compress/FigureYa79CNV.webp',
+                    'gallery_compress/FigureYa80GOclustering.webp',
+                    'gallery_compress/FigureYa81immune_network.webp',
+                    'gallery_compress/FigureYa82IGVzoom.webp',
+                    'gallery_compress/FigureYa83enrichment.webp',
+                    'gallery_compress/FigureYa84roast.webp',
+                    'gallery_compress/FigureYa86SNPmotif.webp',
+                    'gallery_compress/FigureYa87fish.webp',
+                    'gallery_compress/FigureYa88DAVIDkappa.webp',
+                    'gallery_compress/FigureYa89ggplotCirco.webp',
+                    'gallery_compress/FigureYa8radar.webp',
+                    'gallery_compress/FigureYa92immune_gene_update.webp',
+                    'gallery_compress/FigureYa93UMAP.webp',
+                    'gallery_compress/FigureYa95pairwise.webp',
+                    'gallery_compress/FigureYa96R2.webp',
+                    'gallery_compress/FigureYa97correlationV3.webp',
+                    'gallery_compress/FigureYa99smoothHRv2.webp',
+                    'gallery_compress/FigureYa9heatmap.webp',
+                ];
+            }
+
+            getRandomImages(count) {
+                // 随机选择count张图片
+                const selectedImages = [];
+                const usedIndices = new Set();
+
+                for (let i = 0; i < count; i++) {
+                    let randomIndex;
+                    do {
+                        randomIndex = Math.floor(Math.random() * this.imagePaths.length);
+                    } while (usedIndices.has(randomIndex));
+
+                    usedIndices.add(randomIndex);
+                    selectedImages.push(this.imagePaths[randomIndex]);
+                }
+
+                return selectedImages;
+            }
+
+            // 获取硬编码的困难模式布局（5种预设计布局）
+            // 这些布局在页面加载前已生成，直接使用，无需计算
+            getHardModeBoards() {
+                // 占位符：实际布局将在生成工具中填充
+                // 格式：每个布局是一个8x8的二维数组，包含图片路径或null
+                return [
+                    // 布局1-5将在生成后填充
+                ];
+            }
+
+            initializeEventListeners() {
+                const startBtn = document.getElementById('startBtn');
+                const restartBtn = document.getElementById('restartBtn');
+                const hintBtn = document.getElementById('hintBtn');
+
+                if (!startBtn || !restartBtn || !hintBtn) {
+                    // 如果DOM还没加载，等待加载完成
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', () => this.initializeEventListeners());
+                        return;
+                    }
+                    return;
+                }
+
+                startBtn.addEventListener('click', () => this.startGame());
+                restartBtn.addEventListener('click', () => this.restartGame());
+                hintBtn.addEventListener('click', () => this.showHint());
+
+                document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this.changeDifficulty(e);
+                    });
+                });
+            }
+
+            changeDifficulty(e) {
+                // 确保获取正确的按钮元素（可能是点击了按钮内的文本）
+                let button = e.target;
+                while (button && !button.classList.contains('difficulty-btn')) {
+                    button = button.parentElement;
+                }
+                
+                if (!button) {
+                    button = e.target.closest('.difficulty-btn');
+                }
+                
+                if (!button) return; // 如果找不到按钮，直接返回
+                
+                document.querySelectorAll('.difficulty-btn').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                this.difficulty = button.dataset.level;
+
+                // 如果游戏已经开始，重新开始游戏以应用新难度
+                if (this.gameStarted) {
+                    this.restartGame();
+                }
+            }
+
+            startGame() {
+                try {
+                    const settings = this.difficultySettings[this.difficulty];
+                    if (!settings) {
+                        alert('无效的难度设置，请刷新页面重试');
+                        return;
+                    }
+                    this.rows = settings.rows;
+                    this.cols = settings.cols;
+                    this.pairs = settings.pairs;
+
+                    this.initializeGame();
+                } catch (error) {
+                    alert('游戏启动失败: ' + error.message);
+                }
+            }
+
+            initializeGame() {
+                // 优先使用预计算的布局
+                const cachedBoards = this.precomputedBoards[this.difficulty];
+                
+                if (cachedBoards && cachedBoards.length > 0) {
+                    // 从预计算的布局中随机选择一个
+                    const randomIndex = Math.floor(Math.random() * cachedBoards.length);
+                    this.board = cachedBoards[randomIndex].map(row => row.map(cell => cell));
+                    
+                    // 困难模式显示布局编号（调试用，可选）
+                    if (this.difficulty === 'hard') {
+                        // console.log(`使用困难模式布局 #${randomIndex + 1}/${cachedBoards.length}`);
+                    }
+                } else {
+                    // 如果没有预计算的布局，实时生成
+                    // 困难模式应该总是有预计算布局，这里作为后备方案
+                    if (this.difficulty === 'hard') {
+                        console.warn('困难模式预计算布局未就绪，使用实时生成（可能需要等待）');
+                    }
+                    this.generateSolvableBoard();
+                }
+                
+                this.renderBoard();
+                this.gameStarted = true;
+                this.score = 0;
+                this.moves = 0;
+                this.hints = 3;
+                this.timeElapsed = 0;
+
+                this.updateDisplay();
+                this.startTimer();
+
+                document.getElementById('hintBtn').textContent = `提示 (${this.hints})`;
+            }
+
+            // 预计算棋盘布局（在后台进行，减少数量以节省内存）
+            // 困难模式布局已硬编码，无需预计算
+            precomputeBoards() {
+                const difficulties = ['easy', 'medium'];
+                const boardsPerDifficulty = {
+                    easy: 2,     // 简单难度预计算2个（进一步减少内存占用）
+                    medium: 1    // 中等难度预计算1个（进一步减少内存占用）
+                    // hard: 5   // 困难难度布局已硬编码，无需预计算
+                };
+
+                difficulties.forEach((difficulty, index) => {
+                    const settings = this.difficultySettings[difficulty];
+                    const targetCount = boardsPerDifficulty[difficulty];
+                    
+                    // 使用setTimeout分批计算，避免阻塞
+                    let computed = 0;
+                    let attempts = 0;
+                    const maxAttemptsPerBoard = difficulty === 'hard' ? 100 : 50; // 困难模式增加尝试次数
+                    
+                    const computeNext = () => {
+                        if (computed >= targetCount) {
+                            if (difficulty === 'hard' && computed > 0) {
+                                console.log(`${difficulty} 难度预设计完成，共 ${computed} 个布局（目标: ${targetCount}）`);
+                            }
+                            return;
+                        }
+
+                        // 临时设置难度和棋盘大小
+                        const oldDifficulty = this.difficulty;
+                        const oldRows = this.rows;
+                        const oldCols = this.cols;
+                        const oldPairs = this.pairs;
+                        
+                        this.difficulty = difficulty;
+                        this.rows = settings.rows;
+                        this.cols = settings.cols;
+                        this.pairs = settings.pairs;
+
+                        // 生成一个可解的棋盘
+                        const board = this.generateSolvableBoardSync();
+                        if (board) {
+                            this.precomputedBoards[difficulty].push(board);
+                            computed++;
+                            attempts = 0; // 重置尝试次数
+                        } else {
+                            attempts++;
+                            // 如果尝试次数过多，降低要求或跳过
+                            if (attempts >= maxAttemptsPerBoard) {
+                                console.warn(`${difficulty} 难度布局 ${computed + 1} 生成失败，已尝试 ${attempts} 次`);
+                                // 继续尝试下一个，不阻塞
+                            }
+                        }
+
+                        // 恢复设置
+                        this.difficulty = oldDifficulty;
+                        this.rows = oldRows;
+                        this.cols = oldCols;
+                        this.pairs = oldPairs;
+
+                        // 继续计算下一个（使用setTimeout避免阻塞）
+                        // 困难模式间隔稍长，给更多时间生成
+                        const delay = difficulty === 'hard' ? 50 : 10;
+                        setTimeout(computeNext, delay);
+                    };
+
+                    // 开始计算（错开时间，避免同时计算）
+                    // 困难模式优先计算
+                    const startDelay = difficulty === 'hard' ? 0 : (index * 2000);
+                    setTimeout(computeNext, startDelay);
+                });
+            }
+
+            // 同步生成可解棋盘（用于预计算）
+            generateSolvableBoardSync() {
+                let attempts = 0;
+                // 困难模式增加尝试次数，确保生成可解布局
+                const maxAttempts = this.difficulty === 'hard' ? 100 : 50;
+                
+                while (attempts < maxAttempts) {
+                    const testBoard = this.createBoard();
+                    const tempBoard = this.board;
+                    this.board = testBoard;
+                    
+                    const hasEnough = this.hasEnoughConnectablePairs();
+                    if (hasEnough) {
+                        const isSolvable = this.isSolvable();
+                        if (isSolvable) {
+                            this.board = tempBoard;
+                            return testBoard.map(row => row.map(cell => cell));
+                        }
+                    }
+                    
+                    this.board = tempBoard;
+                    attempts++;
+                }
+                
+                return null; // 如果50次尝试都没找到，返回null
+            }
+
+            // 生成可解棋盘（实时生成，用于没有预计算布局时）
+            generateSolvableBoard() {
+                let attempts = 0;
+                const maxAttempts = {
+                    easy: 30,
+                    medium: 50,
+                    hard: 80
+                }[this.difficulty] || 50;
+                
+                let bestBoard = null;
+                let bestScore = 0;
+                
+                while (attempts < maxAttempts) {
+                    const testBoard = this.createBoard();
+                    const tempBoard = this.board;
+                    this.board = testBoard;
+                    
+                    const hasEnough = this.hasEnoughConnectablePairs();
+                    if (hasEnough) {
+                        const isSolvable = this.isSolvable();
+                        if (isSolvable) {
+                            this.board = testBoard;
+                            return;
+                        }
+                    }
+                    
+                    if (hasEnough) {
+                        const pairs = new Map();
+                        for (let i = 0; i < testBoard.length; i++) {
+                            for (let j = 0; j < testBoard[i].length; j++) {
+                                if (testBoard[i][j]) {
+                                    const image = testBoard[i][j];
+                                    if (!pairs.has(image)) {
+                                        pairs.set(image, []);
+                                    }
+                                    pairs.get(image).push({row: i, col: j});
+                                }
+                            }
+                        }
+                        let estimatedCount = 0;
+                        for (const [image, positions] of pairs.entries()) {
+                            const pairCount = positions.length * (positions.length - 1) / 2;
+                            estimatedCount += Math.floor(pairCount * 0.5);
+                        }
+                        
+                        if (estimatedCount > bestScore) {
+                            bestScore = estimatedCount;
+                            bestBoard = testBoard.map(row => row.map(cell => cell));
+                        }
+                    }
+                    
+                    this.board = tempBoard;
+                    attempts++;
+                }
+                
+                if (attempts >= maxAttempts && bestBoard) {
+                    this.board = bestBoard;
+                } else if (attempts >= maxAttempts) {
+                    this.board = this.createBoard();
+                }
+            }
+
+            createBoard() {
+                const totalTiles = this.rows * this.cols;
+                const pairsNeeded = Math.min(this.pairs, Math.floor(totalTiles / 2));
+
+                // 创建成对的图片
+                const images = [];
+                const selectedImages = this.getRandomImages(pairsNeeded);
+
+                for (let i = 0; i < pairsNeeded; i++) {
+                    images.push(selectedImages[i], selectedImages[i]); // 每张图片添加两次，形成一对
+                }
+
+                // 如果还有空余位置，添加更多的对
+                while (images.length < totalTiles && images.length < this.imagePaths.length * 2) {
+                    const randomImage = this.imagePaths[Math.floor(Math.random() * this.imagePaths.length)];
+                    images.push(randomImage, randomImage);
+                }
+
+                // 确保数组长度正好等于totalTiles
+                while (images.length > totalTiles) {
+                    images.pop();
+                }
+
+                // 打乱数组
+                for (let i = images.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [images[i], images[j]] = [images[j], images[i]];
+                }
+
+                // 创建二维数组
+                const board = [];
+                let imageIndex = 0;
+
+                for (let i = 0; i < this.rows; i++) {
+                    board[i] = [];
+                    for (let j = 0; j < this.cols; j++) {
+                        board[i][j] = imageIndex < images.length ? images[imageIndex++] : null;
+                    }
+                }
+
+                return board;
+            }
+
+            renderBoard() {
+                const boardElement = document.getElementById('gameBoard');
+                boardElement.innerHTML = '';
+                boardElement.style.gridTemplateColumns = `repeat(${this.cols}, 1fr)`;
+
+                // 使用DocumentFragment减少DOM重排，提升性能
+                const fragment = document.createDocumentFragment();
+
+                for (let i = 0; i < this.rows; i++) {
+                    for (let j = 0; j < this.cols; j++) {
+                        const tile = document.createElement('div');
+                        tile.className = 'tile';
+                        tile.dataset.row = i;
+                        tile.dataset.col = j;
+
+                        if (this.board[i][j]) {
+                            const img = document.createElement('img');
+                            img.src = this.board[i][j];
+                            img.alt = 'Game Tile';
+                            // 使用loading="lazy"实现懒加载，减少初始加载时间
+                            img.loading = 'lazy';
+                            // 预设置样式，减少重排
+                            img.style.width = '100%';
+                            img.style.height = '100%';
+                            img.style.objectFit = 'cover';
+                            img.style.borderRadius = '6px';
+
+                            // 图片加载失败时隐藏图片（不显示emoji，直接隐藏）
+                            img.onerror = () => {
+                                img.style.display = 'none';
+                                tile.classList.add('empty');
+                            };
+
+                            tile.appendChild(img);
+                        } else {
+                            tile.classList.add('empty');
+                        }
+
+                        fragment.appendChild(tile);
+                    }
+                }
+                
+                // 一次性添加所有元素，减少DOM操作
+                boardElement.appendChild(fragment);
+                
+                // 使用事件委托，减少事件监听器数量（大幅减少内存占用）
+                if (!this.boardClickHandler) {
+                    this.boardClickHandler = (e) => {
+                        const tile = e.target.closest('.tile');
+                        if (tile && !tile.classList.contains('empty')) {
+                            const row = parseInt(tile.dataset.row);
+                            const col = parseInt(tile.dataset.col);
+                            if (!isNaN(row) && !isNaN(col)) {
+                                this.handleTileClick(row, col);
+                            }
+                        }
+                    };
+                    boardElement.addEventListener('click', this.boardClickHandler);
+                }
+            }
+
+            handleTileClick(row, col) {
+                if (!this.gameStarted || !this.board[row][col]) return;
+
+                const tile = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+
+                if (this.selectedTiles.length === 0) {
+                    this.selectedTiles.push({ row, col, element: tile });
+                    tile.classList.add('selected');
+                } else if (this.selectedTiles.length === 1) {
+                    const first = this.selectedTiles[0];
+
+                    if (first.row === row && first.col === col) {
+                        tile.classList.remove('selected');
+                        this.selectedTiles = [];
+                        return;
+                    }
+
+                    this.selectedTiles.push({ row, col, element: tile });
+                    tile.classList.add('selected');
+
+                    this.moves++;
+                    this.updateDisplay();
+
+                    if (this.canConnect(first.row, first.col, row, col)) {
+                        this.handleMatch();
+                    } else {
+                        setTimeout(() => {
+                            this.clearSelection();
+                        }, 500);
+                    }
+                }
+            }
+
+            canConnect(row1, col1, row2, col2) {
+                // 检查是否是相同的图片
+                if (this.board[row1][col1] !== this.board[row2][col2]) {
+                    return false;
+                }
+
+                // 实现真正的连连看规则：最多用3条直线（2个转折点）连接
+                const result = this.findPath(row1, col1, row2, col2);
+
+                return result;
+            }
+
+            findPath(row1, col1, row2, col2) {
+                // 0个转折点：直接连接
+                if (this.canDirectConnect(row1, col1, row2, col2)) {
+                    return true;
+                }
+
+                // 1个转折点：一个转弯
+                if (this.canConnectWithOneCorner(row1, col1, row2, col2)) {
+                    return true;
+                }
+
+                // 2个转折点：两个转弯
+                if (this.canConnectWithTwoCorners(row1, col1, row2, col2)) {
+                    return true;
+                }
+
+                return false;
+            }
+
+            // 检查是否可以直接连接（0个转折点）
+            canDirectConnect(row1, col1, row2, col2) {
+                // 同一行：水平连接
+                if (row1 === row2) {
+                    const start = Math.min(col1, col2);
+                    const end = Math.max(col1, col2);
+
+                    // 检查路径上的每个点（不包括起点和终点）
+                    for (let col = start + 1; col < end; col++) {
+                        // 如果点在边界内，检查是否有阻挡
+                        if (row1 >= 0 && row1 < this.rows && col >= 0 && col < this.cols) {
+                            if (this.board[row1][col] !== null) {
+                                return false; // 路径上有阻挡
+                            }
+                        }
+                        // 如果点在边界外，允许通过（边界外的点可以作为路径的一部分）
+                    }
+                    return true;
+                }
+
+                // 同一列：垂直连接
+                if (col1 === col2) {
+                    const start = Math.min(row1, row2);
+                    const end = Math.max(row1, row2);
+
+                    // 检查路径上的每个点（不包括起点和终点）
+                    for (let row = start + 1; row < end; row++) {
+                        // 如果点在边界内，检查是否有阻挡
+                        if (row >= 0 && row < this.rows && col1 >= 0 && col1 < this.cols) {
+                            if (this.board[row][col1] !== null) {
+                                return false; // 路径上有阻挡
+                            }
+                        }
+                        // 如果点在边界外，允许通过（边界外的点可以作为路径的一部分）
+                    }
+                    return true;
+                }
+
+                return false;
+            }
+
+            // 检查是否可以用一个转折点连接
+            canConnectWithOneCorner(row1, col1, row2, col2) {
+                // 尝试两个转折点位置
+                // 转折点1: (row1, col2)
+                if (this.isValidCorner(row1, col2) &&
+                    this.canDirectConnect(row1, col1, row1, col2) &&
+                    this.canDirectConnect(row1, col2, row2, col2)) {
+                    return true;
+                }
+
+                // 转折点2: (row2, col1)
+                if (this.isValidCorner(row2, col1) &&
+                    this.canDirectConnect(row1, col1, row2, col1) &&
+                    this.canDirectConnect(row2, col1, row2, col2)) {
+                    return true;
+                }
+
+                return false;
+            }
+
+            // 检查是否可以用两个转折点连接
+            canConnectWithTwoCorners(row1, col1, row2, col2) {
+                // 方法1：简化的边界U形检测 - 直接检查四个方向
+
+                // U形1: 两个点都可以向上到达边界 (-1行)
+                if (this.canReachRowBoundary(row1, col1, -1) && this.canReachRowBoundary(row2, col2, -1)) {
+                    return true; // 在上边界外可以连接
+                }
+
+                // U形2: 两个点都可以向下到达边界 (rows行)
+                if (this.canReachRowBoundary(row1, col1, this.rows) && this.canReachRowBoundary(row2, col2, this.rows)) {
+                    return true; // 在下边界外可以连接
+                }
+
+                // U形3: 两个点都可以向左到达边界 (-1列)
+                if (this.canReachColBoundary(row1, col1, -1) && this.canReachColBoundary(row2, col2, -1)) {
+                    return true; // 在左边界外可以连接
+                }
+
+                // U形4: 两个点都可以向右到达边界 (cols列)
+                if (this.canReachColBoundary(row1, col1, this.cols) && this.canReachColBoundary(row2, col2, this.cols)) {
+                    return true; // 在右边界外可以连接
+                }
+
+                // 方法2：标准的两转折点搜索算法
+                // 先找所有可能的第一个转折点（从起点可达的点）
+                const firstCorners = [];
+                for (let row = -1; row <= this.rows; row++) {
+                    for (let col = -1; col <= this.cols; col++) {
+                        // 跳过起点和终点
+                        if ((row === row1 && col === col1) || (row === row2 && col === col2)) continue;
+                        // 检查起点到该点是否可以直接连接，且该点可以作为转折点
+                        if (this.canDirectConnect(row1, col1, row, col) && this.isValidCorner(row, col)) {
+                            firstCorners.push({row, col});
+                        }
+                    }
+                }
+
+                // 从每个第一个转折点找第二个转折点
+                for (let corner1 of firstCorners) {
+                    for (let row = -1; row <= this.rows; row++) {
+                        for (let col = -1; col <= this.cols; col++) {
+                            // 跳过第一个转折点、起点和终点
+                            if ((row === corner1.row && col === corner1.col) ||
+                                (row === row1 && col === col1) ||
+                                (row === row2 && col === col2)) continue;
+                            
+                            // 检查三个条件：
+                            // 1. 第一个转折点到第二个转折点可达
+                            // 2. 第二个转折点到终点可达
+                            // 3. 第二个转折点是有效的（边界外或空位）
+                            if (this.canDirectConnect(corner1.row, corner1.col, row, col) &&
+                                this.canDirectConnect(row, col, row2, col2) &&
+                                this.isValidCorner(row, col)) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+
+                return false;
+            }
+
+            // 检查某个点是否可以作为转折点
+            isValidCorner(row, col) {
+                // 在边界外的点也可以作为转折点
+                if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) {
+                    return true;
+                }
+                // 在边界内的点必须是空的
+                return this.board[row][col] === null;
+            }
+
+            // 检查是否可以通过某个点连接
+            canConnectViaPoint(row, col, row1, col1, row2, col2) {
+                // 检查从这个点到目标点的连接
+                return this.isValidCorner(row, col) &&
+                       this.canDirectConnect(row1, col1, row, col) &&
+                       this.canDirectConnect(row, col, row2, col2);
+            }
+
+            // 检查是否可以到达指定的行边界
+            canReachRowBoundary(row, col, targetRow) {
+                if (targetRow === -1) {
+                    // 向上到达-1行（上边界外）
+                    for (let r = row - 1; r >= 0; r--) {
+                        if (r >= 0 && r < this.rows && this.board[r] && this.board[r][col] !== null) {
+                            return false; // 路径被阻挡
+                        }
+                    }
+                    return true;
+                } else if (targetRow === this.rows) {
+                    // 向下到达rows行（下边界外）
+                    for (let r = row + 1; r < this.rows; r++) {
+                        if (r >= 0 && r < this.rows && this.board[r] && this.board[r][col] !== null) {
+                            return false; // 路径被阻挡
+                        }
+                    }
+                    return true;
+                }
+                return false;
+            }
+
+            // 检查是否可以到达指定的列边界
+            canReachColBoundary(row, col, targetCol) {
+                if (targetCol === -1) {
+                    // 向左到达-1列（左边界外）
+                    for (let c = col - 1; c >= 0; c--) {
+                        if (c >= 0 && c < this.cols && this.board[row] && this.board[row][c] !== null) {
+                            return false; // 路径被阻挡
+                        }
+                    }
+                    return true;
+                } else if (targetCol === this.cols) {
+                    // 向右到达cols列（右边界外）
+                    for (let c = col + 1; c < this.cols; c++) {
+                        if (c >= 0 && c < this.cols && this.board[row] && this.board[row][c] !== null) {
+                            return false; // 路径被阻挡
+                        }
+                    }
+                    return true;
+                }
+                return false;
+            }
+
+    
+            handleMatch() {
+                const [first, second] = this.selectedTiles;
+
+                // 添加匹配动画
+                first.element.classList.add('matched');
+                second.element.classList.add('matched');
+
+                // 清除棋盘上的图片
+                setTimeout(() => {
+                    this.board[first.row][first.col] = null;
+                    this.board[second.row][second.col] = null;
+                    first.element.classList.add('empty');
+                    second.element.classList.add('empty');
+                    first.element.classList.remove('selected', 'matched');
+                    second.element.classList.remove('selected', 'matched');
+                }, 500);
+
+                // 增加分数
+                this.score += 100;
+                this.updateDisplay();
+
+                // 清除选择
+                this.selectedTiles = [];
+
+                // 检查游戏是否结束
+                setTimeout(() => {
+                    if (this.checkGameEnd()) {
+                        this.endGame(true);
+                    }
+                }, 600);
+            }
+
+            clearSelection() {
+                this.selectedTiles.forEach(tile => {
+                    tile.element.classList.remove('selected');
+                });
+                this.selectedTiles = [];
+            }
+
+            showHint() {
+                if (!this.gameStarted) {
+                    alert('请先开始游戏！');
+                    return;
+                }
+
+                if (this.hints <= 0) {
+                    alert('提示次数已用完！');
+                    return;
+                }
+
+                // 清除之前的选择
+                this.clearSelection();
+
+                // 寻找可以匹配的一对
+                let found = false;
+                for (let r1 = 0; r1 < this.rows; r1++) {
+                    for (let c1 = 0; c1 < this.cols; c1++) {
+                        if (!this.board[r1][c1]) continue;
+
+                        for (let r2 = 0; r2 < this.rows; r2++) {
+                            for (let c2 = 0; c2 < this.cols; c2++) {
+                                if (r1 === r2 && c1 === c2) continue;
+                                if (!this.board[r2][c2]) continue;
+
+                                if (this.canConnect(r1, c1, r2, c2)) {
+                                    // 高亮提示
+                                    const tile1 = document.querySelector(`[data-row="${r1}"][data-col="${c1}"]`);
+                                    const tile2 = document.querySelector(`[data-row="${r2}"][data-col="${c2}"]`);
+
+                                    if (tile1 && tile2) {
+                                        // 使用更明显的提示效果
+                                        tile1.style.background = '#f39c12';
+                                        tile1.style.border = '3px solid #e67e22';
+                                        tile1.style.transform = 'scale(1.1)';
+                                        tile1.style.zIndex = '10';
+                                        
+                                        tile2.style.background = '#f39c12';
+                                        tile2.style.border = '3px solid #e67e22';
+                                        tile2.style.transform = 'scale(1.1)';
+                                        tile2.style.zIndex = '10';
+
+                                        // 添加闪烁动画
+                                        let blinkCount = 0;
+                                        const blinkInterval = setInterval(() => {
+                                            const opacity = blinkCount % 2 === 0 ? '0.7' : '1';
+                                            tile1.style.opacity = opacity;
+                                            tile2.style.opacity = opacity;
+                                            blinkCount++;
+                                            if (blinkCount >= 6) {
+                                                clearInterval(blinkInterval);
+                                            }
+                                        }, 200);
+
+                                        setTimeout(() => {
+                                            tile1.style.background = '';
+                                            tile1.style.border = '';
+                                            tile1.style.transform = '';
+                                            tile1.style.zIndex = '';
+                                            tile1.style.opacity = '';
+                                            
+                                            tile2.style.background = '';
+                                            tile2.style.border = '';
+                                            tile2.style.transform = '';
+                                            tile2.style.zIndex = '';
+                                            tile2.style.opacity = '';
+                                        }, 2000);
+
+                                        this.hints--;
+                                        this.score = Math.max(0, this.score - 50);
+                                        this.updateDisplay();
+                                        document.getElementById('hintBtn').textContent = `提示 (${this.hints})`;
+                                        found = true;
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 如果没有找到可连接的配对
+                if (!found) {
+                    alert('当前没有可连接的配对！');
+                }
+            }
+
+            checkGameEnd() {
+                for (let i = 0; i < this.rows; i++) {
+                    for (let j = 0; j < this.cols; j++) {
+                        if (this.board[i][j]) return false;
+                    }
+                }
+                return true;
+            }
+
+            // 检查棋盘是否有足够的可连接配对（优化版本：快速采样检查）
+            hasEnoughConnectablePairs() {
+                const pairs = new Map(); // 存储每种图片的所有位置
+                
+                // 收集所有图片的位置
+                for (let i = 0; i < this.rows; i++) {
+                    for (let j = 0; j < this.cols; j++) {
+                        if (this.board[i][j]) {
+                            const image = this.board[i][j];
+                            if (!pairs.has(image)) {
+                                pairs.set(image, []);
+                            }
+                            pairs.get(image).push({row: i, col: j});
+                        }
+                    }
+                }
+
+                // 统计总配对数和可连接的配对数量（优化：限制检查数量）
+                let connectableCount = 0;
+                let totalPairs = 0;
+                let checkedPairs = 0;
+                const maxChecks = 50; // 最多检查50对，提高速度
+                
+                for (const [image, positions] of pairs.entries()) {
+                    // 对于每种图片，检查所有可能的配对
+                    for (let i = 0; i < positions.length; i++) {
+                        for (let j = i + 1; j < positions.length; j++) {
+                            totalPairs++;
+                            
+                            // 如果已经检查了足够多的配对，使用估算
+                            if (checkedPairs >= maxChecks) {
+                                // 基于已检查的结果估算
+                                const ratio = connectableCount / checkedPairs;
+                                const estimatedConnectable = Math.floor(totalPairs * ratio);
+                                connectableCount = estimatedConnectable;
+                                break;
+                            }
+                            
+                            const pos1 = positions[i];
+                            const pos2 = positions[j];
+                            if (this.canConnect(pos1.row, pos1.col, pos2.row, pos2.col)) {
+                                connectableCount++;
+                            }
+                            checkedPairs++;
+                        }
+                        if (checkedPairs >= maxChecks) break;
+                    }
+                    if (checkedPairs >= maxChecks) break;
+                }
+
+                // 根据难度设置最小可连接配对比例
+                // 简单难度至少需要60%的配对可连接，中等40%，困难30%
+                const minRatio = {
+                    easy: 0.6,
+                    medium: 0.4,
+                    hard: 0.3
+                }[this.difficulty] || 0.4;
+
+                // 至少要有一定数量的可连接配对
+                // 简单难度至少需要总配对数的60%，但至少要有4对可连接
+                const minConnectable = this.difficulty === 'easy' 
+                    ? Math.max(4, Math.floor(totalPairs * minRatio))
+                    : Math.max(3, Math.floor(totalPairs * minRatio));
+                
+                return connectableCount >= minConnectable;
+            }
+
+            // 检查棋盘是否可解（所有图片都能被消除）
+            isSolvable() {
+                // 创建棋盘副本用于模拟
+                const boardCopy = this.board.map(row => row.map(cell => cell));
+                
+                // 使用递归回溯算法尝试消除所有配对
+                return this.solveBoard(boardCopy);
+            }
+
+            // 递归回溯算法解决棋盘（带深度限制和优化）
+            solveBoard(board, depth = 0, maxDepth = 40) {
+                // 防止递归过深（根据棋盘大小调整深度）
+                const boardSize = board.length * (board[0] ? board[0].length : 0);
+                const adaptiveMaxDepth = Math.min(maxDepth, Math.floor(boardSize / 2));
+                
+                if (depth > adaptiveMaxDepth) {
+                    return false;
+                }
+
+                // 检查是否所有图片都已消除
+                let hasTiles = false;
+                for (let i = 0; i < board.length; i++) {
+                    for (let j = 0; j < board[i].length; j++) {
+                        if (board[i][j] !== null) {
+                            hasTiles = true;
+                            break;
+                        }
+                    }
+                    if (hasTiles) break;
+                }
+                
+                if (!hasTiles) {
+                    return true; // 所有图片都已消除，棋盘可解
+                }
+
+                // 找到所有可连接的配对
+                const connectablePairs = [];
+                
+                for (let r1 = 0; r1 < board.length; r1++) {
+                    for (let c1 = 0; c1 < board[r1].length; c1++) {
+                        if (board[r1][c1] === null) continue;
+                        
+                        for (let r2 = 0; r2 < board.length; r2++) {
+                            for (let c2 = 0; c2 < board[r2].length; c2++) {
+                                if (r1 === r2 && c1 === c2) continue;
+                                if (board[r2][c2] === null) continue;
+                                if (board[r1][c1] !== board[r2][c2]) continue;
+                                
+                                // 检查是否可以连接（使用传入的棋盘状态）
+                                if (this.canConnectWithBoard(board, r1, c1, r2, c2)) {
+                                    connectablePairs.push({r1, c1, r2, c2});
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 如果没有可连接的配对，棋盘不可解
+                if (connectablePairs.length === 0) {
+                    return false;
+                }
+
+                // 尝试消除每个可连接的配对（优先尝试直接连接的配对）
+                // 先尝试直接连接的配对（0个转折点）
+                const directPairs = [];
+                const otherPairs = [];
+                
+                for (const pair of connectablePairs) {
+                    if (this.canDirectConnectWithBoard(board, pair.r1, pair.c1, pair.r2, pair.c2)) {
+                        directPairs.push(pair);
+                    } else {
+                        otherPairs.push(pair);
+                    }
+                }
+                
+                // 先尝试直接连接的配对
+                const sortedPairs = [...directPairs, ...otherPairs];
+                
+                for (const pair of sortedPairs) {
+                    // 创建新的棋盘状态
+                    const newBoard = board.map(row => row.map(cell => cell));
+                    
+                    // 消除这对图片
+                    newBoard[pair.r1][pair.c1] = null;
+                    newBoard[pair.r2][pair.c2] = null;
+                    
+                    // 递归检查剩余棋盘是否可解
+                    if (this.solveBoard(newBoard, depth + 1, maxDepth)) {
+                        return true;
+                    }
+                }
+
+                return false; // 所有尝试都失败，棋盘不可解
+            }
+
+            // 使用指定棋盘状态检查是否可以直接连接
+            canDirectConnectWithBoard(board, row1, col1, row2, col2) {
+                // 同一行：水平连接
+                if (row1 === row2) {
+                    const start = Math.min(col1, col2);
+                    const end = Math.max(col1, col2);
+
+                    for (let col = start + 1; col < end; col++) {
+                        if (row1 >= 0 && row1 < board.length && col >= 0 && col < board[row1].length) {
+                            if (board[row1][col] !== null) {
+                                return false;
+                            }
+                        }
+                    }
+                    return true;
+                }
+
+                // 同一列：垂直连接
+                if (col1 === col2) {
+                    const start = Math.min(row1, row2);
+                    const end = Math.max(row1, row2);
+
+                    for (let row = start + 1; row < end; row++) {
+                        if (row >= 0 && row < board.length && col1 >= 0 && col1 < board[row].length) {
+                            if (board[row][col1] !== null) {
+                                return false;
+                            }
+                        }
+                    }
+                    return true;
+                }
+
+                return false;
+            }
+
+            // 使用指定棋盘状态检查是否可以连接
+            canConnectWithBoard(board, row1, col1, row2, col2) {
+                // 检查是否是相同的图片
+                if (board[row1][col1] !== board[row2][col2]) {
+                    return false;
+                }
+
+                // 使用临时棋盘状态检查路径
+                const tempBoard = this.board;
+                this.board = board;
+                const result = this.findPath(row1, col1, row2, col2);
+                this.board = tempBoard;
+                
+                return result;
+            }
+
+            startTimer() {
+                this.timer = setInterval(() => {
+                    this.timeElapsed++;
+                    this.updateTimer();
+                }, 1000);
+            }
+
+            stopTimer() {
+                if (this.timer) {
+                    clearInterval(this.timer);
+                    this.timer = null;
+                }
+            }
+
+            updateTimer() {
+                const minutes = Math.floor(this.timeElapsed / 60);
+                const seconds = this.timeElapsed % 60;
+                document.getElementById('time').textContent =
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+
+            updateDisplay() {
+                document.getElementById('score').textContent = this.score;
+                document.getElementById('moves').textContent = this.moves;
+                this.updateTimer();
+            }
+
+            restartGame() {
+                this.stopTimer();
+                this.gameStarted = false;
+                this.selectedTiles = [];
+                
+                // 清理DOM和事件监听器，释放内存
+                const boardElement = document.getElementById('gameBoard');
+                if (this.boardClickHandler) {
+                    boardElement.removeEventListener('click', this.boardClickHandler);
+                    this.boardClickHandler = null;
+                }
+                boardElement.innerHTML = '';
+                
+                // 清理预计算缓存（可选：如果内存紧张）
+                // this.precomputedBoards = { easy: [], medium: [], hard: [] };
+                
+                this.startGame();
+            }
+
+            endGame(won) {
+                this.stopTimer();
+                this.gameStarted = false;
+
+                const overlay = document.getElementById('overlay');
+                const gameOver = document.getElementById('gameOver');
+                const title = document.getElementById('gameOverTitle');
+                const message = document.getElementById('gameOverMessage');
+
+                if (won) {
+                    title.textContent = '🎉 恭喜通关！';
+                    message.innerHTML = `
+                        完成时间：${document.getElementById('time').textContent}<br>
+                        最终得分：${this.score}<br>
+                        使用步数：${this.moves}<br>
+                        难度级别：${this.getDifficultyText()}
+                    `;
+                } else {
+                    title.textContent = '游戏结束';
+                    message.textContent = `最终得分：${this.score}`;
+                }
+
+                overlay.style.display = 'block';
+                gameOver.style.display = 'block';
+            }
+
+            getDifficultyText() {
+                const texts = {
+                    easy: '简单',
+                    medium: '中等',
+                    hard: '困难'
+                };
+                return texts[this.difficulty];
+            }
+        }
+
+        // 初始化游戏
+        let game;
+        try {
+            game = new LianLianKan();
+        } catch (error) {
+            alert('游戏初始化失败: ' + error.message);
+        }
+
+        // 全局函数
+        function restartGame() {
+            if (!game) return;
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('gameOver').style.display = 'none';
+            game.restartGame();
+        }
+    </script>
+</body>
+</html>

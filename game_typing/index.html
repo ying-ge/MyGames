@@ -1,0 +1,2905 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="绿色终端打字游戏 - 90年代复古风格的打字练习游戏">
+    <meta name="keywords" content="打字游戏,绿色终端,复古,typing,练习,中文打字,英文打字">
+    <title>绿色终端打字游戏</title>
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:title" content="绿色终端打字游戏">
+    <meta property="og:description" content="体验90年代绿色终端风格的打字练习游戏！">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="./assets/icon.png">
+    <meta property="og:url" content="https://yourusername.github.io/typing-game-web/">
+
+    <!-- Favicon -->
+    <link rel="icon" href="./favicon.ico">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./manifest.json">
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#0a0f0a">
+    <meta name="msapplication-TileColor" content="#0a0f0a">
+
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <style>
+        /* CRT扫描线效果 */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                rgba(0, 255, 0, 0.03) 50%,
+                rgba(0, 0, 0, 0.15) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        /* CRT闪烁效果已移除 - 用户反馈不要闪烁 */
+
+        /* 页面基础样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Courier New', 'Monaco', 'Menlo', 'VT323', monospace;
+            background-color: #000000;
+            color: #00ff00;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 90年代电脑终端效果 */
+        .terminal {
+            background-color: #000000;
+            border: 3px double #808080;
+            border-radius: 0px;
+            box-shadow:
+                inset -2px -2px 0px #808080,
+                inset 2px 2px 0px #c0c0c0,
+                0 0 0px 2px #c0c0c0,
+                0 0 0px 4px #808080,
+                0 0 10px rgba(0, 255, 0, 0.2);
+            margin: 20px;
+            padding: 20px;
+            flex: 1;
+            max-width: 1200px;
+            width: calc(100% - 40px);
+            position: relative;
+        }
+
+        @keyframes terminal-glow {
+            0% { box-shadow: 0 0 30px rgba(0, 255, 0, 0.3); }
+            100% { box-shadow: 0 0 40px rgba(0, 255, 0, 0.5); }
+        }
+
+        /* 头部样式 */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #00ff00;
+            background-color: #000000;
+            box-shadow: inset 0 0 20px rgba(0, 255, 0, 0.05);
+            text-shadow: 0 0 5px #00ff00;
+        }
+
+        .title {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            letter-spacing: 5px;
+            text-shadow: 0 0 20px #00ff00;
+            /* 闪烁效果已移除 - 用户反馈不要闪烁 */
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.8;
+            letter-spacing: 2px;
+        }
+
+        /* 控制区域 */
+        .controls-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #00ff00;
+            background-color: rgba(0, 255, 0, 0.05);
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-label {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.9;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .control-btn {
+            background-color: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 10px 20px;
+            font-family: inherit;
+            font-size: 1em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 0;
+            text-shadow: 0 0 5px #00ff00;
+        }
+
+        .control-btn:hover {
+            background-color: rgba(0, 255, 0, 0.2);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .control-btn.active {
+            background-color: rgba(0, 255, 0, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.8);
+        }
+
+        /* 统计信息 */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            border: 1px solid #00ff00;
+            background-color: rgba(0, 255, 0, 0.05);
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            text-shadow: 0 0 8px #00ff00;
+        }
+
+        /* 进度条 */
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            border: 1px solid #00ff00;
+            background-color: rgba(0, 255, 0, 0.1);
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #00aa00);
+            box-shadow: 0 0 10px #00ff00;
+            transition: width 0.3s ease;
+        }
+
+        /* 游戏区域 */
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            border: 2px solid #00ff00;
+            padding: 30px;
+            background-color: rgba(0, 255, 0, 0.05);
+            margin-bottom: 30px;
+            min-height: 300px;
+        }
+
+        .word-display {
+            text-align: center;
+            margin-bottom: 30px;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .current-word {
+            font-size: 3em;
+            font-weight: bold;
+            text-shadow: 0 0 20px #00ff00;
+            letter-spacing: 3px;
+            min-height: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .char {
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .char.correct {
+            color: #00ff00;
+            text-shadow: 0 0 15px #00ff00;
+            animation: pulse 0.3s ease;
+        }
+
+        .char.incorrect {
+            color: #ff0000;
+            text-shadow: 0 0 15px #ff0000;
+            animation: shake 0.3s ease;
+        }
+
+        .char.remaining {
+            color: #00aa00;
+            opacity: 0.7;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* 光标 */
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 1.2em;
+            background-color: #00ff00;
+            animation: blink 1s infinite;
+            vertical-align: middle;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* 输入区域 */
+        .input-area {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        #textInput {
+            background-color: rgba(0, 255, 0, 0.1);
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            padding: 20px;
+            font-size: 1.8em;
+            font-family: inherit;
+            text-align: center;
+            width: 100%;
+            max-width: 500px;
+            text-shadow: 0 0 5px #00ff00;
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+            border-radius: 5px;
+        }
+
+        #textInput:focus {
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.6);
+            background-color: rgba(0, 255, 0, 0.15);
+        }
+
+        /* 游戏结束弹窗 */
+        .game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 15, 10, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .game-over.active {
+            display: flex;
+        }
+
+        .game-over-content {
+            text-align: center;
+            padding: 40px;
+            border: 2px solid #00cc00;
+            background-color: rgba(0, 153, 0, 0.15);
+            box-shadow: 0 0 20px rgba(0, 153, 0, 0.4);
+            max-width: 500px;
+            margin: 20px;
+            border-radius: 10px;
+        }
+
+        .game-over-title {
+            font-size: 2em;
+            margin-bottom: 20px;
+            text-shadow: 0 0 15px #00ff00;
+        }
+
+        .final-stats {
+            margin: 20px 0;
+            font-size: 1.2em;
+            line-height: 1.6;
+        }
+
+        .final-stats div {
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .final-stats span {
+            color: #00aa00;
+            font-weight: bold;
+            text-shadow: 0 0 8px #00aa00;
+        }
+
+        .final-buttons {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .game-over-btn {
+            background-color: rgba(0, 255, 0, 0.1);
+            border: 2px solid #00ff00;
+            color: #00aa00;
+            padding: 15px 30px;
+            font-family: inherit;
+            font-size: 1.1em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 5px;
+            text-shadow: 0 0 5px #00aa00;
+        }
+
+        .game-over-btn:hover {
+            background-color: rgba(0, 255, 0, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.8);
+            transform: translateY(-2px);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .terminal {
+                margin: 10px;
+                padding: 15px;
+                border-radius: 5px;
+            }
+
+            .title {
+                font-size: 2em;
+            }
+
+            .current-word {
+                font-size: 2.2em;
+            }
+
+            #textInput {
+                font-size: 1.5em;
+                padding: 15px;
+            }
+
+            .control-buttons {
+                gap: 8px;
+            }
+
+            .control-btn {
+                padding: 8px 16px;
+                font-size: 0.9em;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .terminal {
+                margin: 5px;
+                padding: 10px;
+            }
+
+            .title {
+                font-size: 1.8em;
+                margin-bottom: 5px;
+            }
+
+            .subtitle {
+                font-size: 1em;
+            }
+
+            .current-word {
+                font-size: 2em;
+            }
+
+            #textInput {
+                font-size: 1.3em;
+                padding: 12px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .game-over-content {
+                padding: 30px 20px;
+                margin: 10px;
+            }
+        }
+
+        /* 暗色模式支持 */
+        @media (prefers-color-scheme: dark) {
+            /* 深色模式已经是默认样式 */
+        }
+
+        @media (prefers-color-scheme: light) {
+            /* 浅色模式适配 */
+            body {
+                background-color: #f0f0f0;
+                color: #006600;
+            }
+
+            .terminal {
+                background-color: #f8f8f8;
+                border-color: #006600;
+            }
+
+            .header {
+                background-color: rgba(0, 102, 0, 0.1);
+                border-color: #006600;
+                color: #006600;
+            }
+
+            .control-btn {
+                background-color: rgba(0, 102, 0, 0.1);
+                border-color: #006600;
+                color: #006600;
+            }
+
+            .control-btn:hover {
+                background-color: rgba(0, 102, 0, 0.2);
+            }
+
+            .control-btn.active {
+                background-color: rgba(0, 102, 0, 0.3);
+            }
+
+            .stat-item {
+                background-color: rgba(0, 102, 0, 0.05);
+                border-color: #006600;
+                color: #006600;
+            }
+
+            #textInput {
+                background-color: rgba(0, 102, 0, 0.1);
+                border-color: #006600;
+                color: #006600;
+            }
+
+            .current-word {
+                color: #006600;
+                text-shadow: 0 0 15px #006600;
+            }
+
+            .char.correct {
+                color: #006600;
+                text-shadow: 0 0 15px #006600;
+            }
+
+            .char.remaining {
+                color: #004400;
+            }
+
+            .cursor {
+                background-color: #006600;
+            }
+
+            .game-over {
+                background-color: rgba(240, 240, 240, 0.95);
+            }
+
+            .game-over-content {
+                border-color: #009900;
+                background-color: rgba(0, 153, 0, 0.12);
+                color: #006600;
+            }
+        }
+
+        /* 无障碍性 */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+
+            .terminal {
+                animation: none;
+            }
+
+            .control-btn:hover {
+                transform: none;
+            }
+
+            .game-over-btn:hover {
+                transform: none;
+            }
+        }
+
+        /* 打印样式 */
+        @media print {
+            body {
+                background-color: white;
+                color: black;
+            }
+
+            .terminal {
+                border: 1px solid #000;
+                box-shadow: none;
+            }
+
+            .cursor {
+                display: none;
+            }
+
+            body::before {
+                display: none;
+            }
+        }
+
+        /* 焦点样式 */
+        #textInput:focus-visible {
+            outline: 2px solid #00ff00;
+            outline-offset: 2px;
+        }
+
+        /* 选择文本样式 */
+        ::selection {
+            background-color: #00ff00;
+            color: #0a0f0a;
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 255, 0, 0.1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #00ff00;
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00cc00;
+        }
+
+        /* 自定义词汇模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            font-family: 'Courier New', monospace;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: #000000;
+            border: 2px solid #00ff00;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+            color: #00ff00;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-header {
+            background-color: rgba(0, 255, 0, 0.1);
+            padding: 20px;
+            border-bottom: 1px solid #00ff00;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .modal-close {
+            background: none;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px 10px;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background-color: rgba(0, 255, 0, 0.2);
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .vocab-input-section {
+            margin-bottom: 30px;
+        }
+
+        .input-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #00ff00;
+        }
+
+        .tab-btn {
+            background: none;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: -1px;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active,
+        .tab-btn:hover {
+            background-color: rgba(0, 255, 0, 0.2);
+            border-bottom-color: #000000;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        #vocabTextarea {
+            width: 100%;
+            height: 150px;
+            background-color: rgba(0, 255, 0, 0.05);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        #vocabTextarea:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        #vocabFile {
+            background-color: rgba(0, 255, 0, 0.05);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 10px;
+            width: 100%;
+        }
+
+        .file-info {
+            margin-top: 10px;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        .delimiter-detection {
+            background-color: rgba(0, 255, 0, 0.05);
+            border: 1px solid #00ff00;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .delimiter-detection h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        .detected-delimiter {
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .delimiter-value {
+            color: #ffff00;
+            text-shadow: 0 0 5px #ffff00;
+        }
+
+        .delimiter-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .delimiter-options label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .delimiter-options input[type="radio"] {
+            margin-right: 8px;
+        }
+
+        .vocab-preview {
+            margin-bottom: 30px;
+        }
+
+        .vocab-preview h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        .preview-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: rgba(0, 255, 0, 0.05);
+            border: 1px solid #00ff00;
+        }
+
+        .btn-small {
+            background-color: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-small:hover {
+            background-color: rgba(0, 255, 0, 0.3);
+        }
+
+        .preview-container {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #00ff00;
+            background-color: rgba(0, 255, 0, 0.02);
+        }
+
+        .vocab-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 15px;
+        }
+
+        .vocab-item {
+            background-color: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 14px;
+            position: relative;
+        }
+
+        .vocab-item .remove-item {
+            margin-left: 8px;
+            color: #ff4444;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .vocab-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background-color: rgba(0, 255, 0, 0.2);
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            padding: 12px 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: rgba(0, 255, 0, 0.4);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.8);
+        }
+
+        .btn-secondary {
+            background-color: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(0, 255, 0, 0.3);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .modal-content {
+                width: 95%;
+                margin: 10px;
+            }
+
+            .modal-header {
+                padding: 15px;
+            }
+
+            .modal-body {
+                padding: 15px;
+            }
+
+            .delimiter-options {
+                grid-template-columns: 1fr;
+            }
+
+            .vocab-actions {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn-primary,
+            .btn-secondary {
+                width: 100%;
+                max-width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal">
+        <header class="header">
+            <h1 class="title">DOS时代打字</h1>
+            <div class="subtitle">SYSTEM READY...</div>
+        </header>
+
+        <div class="controls-section">
+            <div class="control-group">
+                <div class="control-label">选择语言</div>
+                <div class="control-buttons">
+                    <button class="control-btn active" id="chineseBtn" data-lang="chinese">中文</button>
+                    <button class="control-btn" id="englishBtn" data-lang="english">English</button>
+                    <button class="control-btn" id="idiomBtn" data-lang="idiom">成语</button>
+                    <button class="control-btn" id="customBtn" data-lang="custom">自定义</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">选择年级</div>
+                <div class="control-buttons">
+                    <button class="control-btn active" data-level="easy">小学四年级</button>
+                    <button class="control-btn" data-level="medium">小学五六年级</button>
+                    <button class="control-btn" data-level="hard">初中一、二年级</button>
+                    <button class="control-btn" data-level="extreme">初中三年级到高中</button>
+                    <button class="control-btn" data-level="university">大学阶段</button>
+                    <button class="control-btn" data-level="graduate">研究生阶段</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-buttons">
+                    <button class="control-btn" id="startBtn">开始游戏</button>
+                    <button class="control-btn" id="pauseBtn" style="display: none;">暂停</button>
+                    <button class="control-btn" id="resetBtn">重置</button>
+                    <button class="control-btn" id="audioBtn">🔊</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-label">时间</div>
+                <div class="stat-value" id="timer">60</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">WPM</div>
+                <div class="stat-value" id="wpm">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">准确率</div>
+                <div class="stat-value" id="accuracy">100%</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">得分</div>
+                <div class="stat-value" id="score">0</div>
+            </div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+
+        <div class="game-area">
+            <div class="word-display">
+                <div class="current-word" id="currentWord">
+                    <span class="cursor"></span>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <input type="text" id="textInput" placeholder="输入显示的文字..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            </div>
+        </div>
+
+        <div class="game-over" id="gameOver">
+            <div class="game-over-content">
+                <h2 class="game-over-title">游戏结束!</h2>
+                <div class="final-stats">
+                    <div><span>最终得分:</span> <span id="finalScore">0</span></div>
+                    <div><span>平均 WPM:</span> <span id="finalWpm">0</span></div>
+                    <div><span>准确率:</span> <span id="finalAccuracy">0%</span></div>
+                    <div><span>完成单词:</span> <span id="totalWords">0</span></div>
+                </div>
+                <div class="final-buttons">
+                    <button class="game-over-btn" id="restartBtn">再玩一次</button>
+                    <button class="game-over-btn" id="shareBtn">分享</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自定义词汇模态框 -->
+    <div class="modal" id="customVocabModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📝 自定义词汇表</h2>
+                <button class="modal-close" id="closeCustomModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="vocab-input-section">
+                    <div class="input-tabs">
+                        <button class="tab-btn active" data-tab="paste">📋 复制粘贴</button>
+                        <button class="tab-btn" data-tab="upload">📁 文件上传</button>
+                    </div>
+
+                    <div class="tab-content active" id="pasteTab">
+                        <div class="input-group">
+                            <label for="vocabTextarea">粘贴您的词汇内容：</label>
+                            <textarea id="vocabTextarea" placeholder="请粘贴词汇内容，支持多种分隔符：&#10;• 换行分隔&#10;• 逗号分隔&#10;• 空格分隔&#10;• 顿号分隔&#10;• 分号分隔&#10;&#10;例如：&#10;apple, banana, orange&#10;或&#10;苹果 香蕉 橙子&#10;或&#10;苹果、香蕉、橙子"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="uploadTab">
+                        <div class="input-group">
+                            <label for="vocabFile">选择文本文件：</label>
+                            <input type="file" id="vocabFile" accept=".txt,.csv,.md" />
+                            <div class="file-info">支持 .txt, .csv, .md 格式文件</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="delimiter-detection">
+                    <h3>🔍 分隔符检测</h3>
+                    <div class="detected-delimiter">
+                        <span>检测到分隔符：</span>
+                        <span id="detectedDelimiter" class="delimiter-value">自动检测中...</span>
+                    </div>
+                    <div class="delimiter-options">
+                        <label><input type="radio" name="delimiter" value="auto" checked> 自动检测</label>
+                        <label><input type="radio" name="delimiter" value=","> 逗号 (,)</label>
+                        <label><input type="radio" name="delimiter" value=" "> 空格</label>
+                        <label><input type="radio" name="delimiter" value="\n"> 换行</label>
+                        <label><input type="radio" name="delimiter" value="、"> 顿号 (、)</label>
+                        <label><input type="radio" name="delimiter" value=";"> 分号 (;)</label>
+                    </div>
+                </div>
+
+                <div class="vocab-preview">
+                    <h3>📖 词汇预览</h3>
+                    <div class="preview-stats">
+                        <span>检测到词汇数量：<strong id="vocabCount">0</strong></span>
+                        <button class="btn-small" id="shuffleVocab">🔀 随机排序</button>
+                    </div>
+                    <div class="preview-container">
+                        <div id="vocabPreview" class="vocab-list"></div>
+                    </div>
+                </div>
+
+                <div class="vocab-actions">
+                    <button class="btn-primary" id="saveCustomVocab">💾 保存词汇表</button>
+                    <button class="btn-secondary" id="clearCustomVocab">🗑️ 清空</button>
+                    <button class="btn-secondary" id="exportCustomVocab">📤 导出词汇</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class TypingGame {
+            constructor() {
+                // 词汇库 - 基于小学四年级到高中教材必会词汇
+                this.words = {
+                    easy: [
+                        // 小学四年级词汇
+                        'science', 'experiment', 'discover', 'invent', 'create', 'build', 'design', 'solve', 'think', 'know',
+                        'computer', 'internet', 'email', 'website', 'game', 'program', 'mouse', 'keyboard', 'screen', 'type',
+                        'library', 'bookstore', 'magazine', 'newspaper', 'dictionary', 'letter', 'write', 'send', 'receive', 'read',
+                        'kitchen', 'bedroom', 'bathroom', 'living', 'room', 'house', 'apartment', 'building', 'street', 'city',
+                        'vegetable', 'tomato', 'potato', 'onion', 'carrot', 'cabbage', 'salad', 'soup', 'cook', 'prepare',
+                        'sport', 'football', 'basketball', 'tennis', 'swimming', 'running', 'team', 'player', 'win', 'lose',
+                        'animal', 'zoo', 'wild', 'pet', 'feed', 'care', 'protect', 'save', 'environment', 'nature',
+                        'beautiful', 'wonderful', 'interesting', 'delicious', 'important', 'difficult', 'easy', 'hard', 'quick', 'slow',
+                        'spring', 'summer', 'autumn', 'winter', 'season', 'weather', 'warm', 'cool', 'hot', 'cold',
+                        'garden', 'park', 'zoo', 'farm', 'forest', 'mountain', 'river', 'lake', 'beach', 'island',
+                        'teacher', 'student', 'class', 'lesson', 'homework', 'test', 'grade', 'learn', 'teach', 'study',
+                        'hospital', 'doctor', 'nurse', 'medicine', 'healthy', 'sick', 'hurt', 'pain', 'rest', 'exercise',
+                        'birthday', 'party', 'present', 'celebrate', 'fun', 'enjoy', 'laugh', 'smile', 'cry', 'happy',
+                        'bicycle', 'car', 'bus', 'train', 'plane', 'boat', 'travel', 'visit', 'trip', 'journey',
+                        'music', 'song', 'radio', 'television', 'movie', 'story', 'picture', 'photo', 'camera', 'art'
+                    ],
+                    medium: [
+                        // 小学五、六年级词汇
+                        'knowledge', 'information', 'technology', 'communication', 'transportation', 'population', 'economy', 'development', 'progress', 'success',
+                        'history', 'ancient', 'modern', 'culture', 'tradition', 'custom', 'festival', 'ceremony', 'celebration', 'nation',
+                        'geography', 'country', 'capital', 'continent', 'ocean', 'direction', 'north', 'south', 'east', 'west',
+                        'mathematics', 'number', 'calculate', 'measure', 'problem', 'solution', 'answer', 'question', 'method', 'formula',
+                        'language', 'grammar', 'vocabulary', 'pronunciation', 'conversation', 'expression', 'meaning', 'translate', 'understand', 'explain',
+                        'physics', 'energy', 'force', 'motion', 'electricity', 'magnet', 'machine', 'engine', 'power', 'light',
+                        'chemistry', 'element', 'mixture', 'reaction', 'experiment', 'laboratory', 'safety', 'material', 'substance', 'change',
+                        'biology', 'plant', 'animal', 'human', 'body', 'organ', 'cell', 'life', 'grow', 'develop',
+                        'literature', 'poem', 'novel', 'character', 'plot', 'theme', 'author', 'imagination', 'creativity', 'expression',
+                        'psychology', 'mind', 'behavior', 'feeling', 'emotion', 'personality', 'memory', 'dream', 'think', 'believe',
+                        'government', 'democracy', 'citizen', 'right', 'responsibility', 'law', 'rule', 'order', 'society', 'community',
+                        'economy', 'business', 'industry', 'agriculture', 'service', 'trade', 'market', 'price', 'money', 'bank',
+                        'education', 'university', 'college', 'degree', 'diploma', 'career', 'profession', 'skill', 'talent', 'ability',
+                        'environment', 'pollution', 'recycle', 'conserve', 'protect', 'sustainable', 'climate', 'global', 'warming', 'future',
+                        'technology', 'innovation', 'research', 'discovery', 'invention', 'robot', 'artificial', 'digital', 'network', 'data',
+                        'health', 'nutrition', 'diet', 'exercise', 'fitness', 'disease', 'prevention', 'treatment', 'medicine', 'doctor',
+                        'art', 'museum', 'gallery', 'painting', 'sculpture', 'music', 'concert', 'performance', 'theater', 'culture'
+                    ],
+                    hard: [
+                        // 初中一、二年级词汇
+                        'achievement', 'advancement', 'civilization', 'contribution', 'development', 'establishment', 'government', 'improvement', 'organization', 'relationship',
+                        'architecture', 'construction', 'engineering', 'infrastructure', 'technology', 'telecommunication', 'transportation', 'manufacturing', 'production', 'distribution',
+                        'biotechnology', 'genetics', 'evolution', 'ecosystem', 'environment', 'conservation', 'biodiversity', 'sustainability', 'renewable', 'pollution',
+                        'philosophy', 'psychology', 'sociology', 'anthropology', 'archaeology', 'history', 'literature', 'linguistics', 'economics', 'geography',
+                        'mathematics', 'algebra', 'geometry', 'statistics', 'calculus', 'physics', 'chemistry', 'biology', 'astronomy', 'geology',
+                        'democracy', 'republic', 'parliament', 'election', 'campaign', 'candidate', 'constitution', 'legislation', 'policy', 'diplomacy',
+                        'globalization', 'international', 'multinational', 'corporation', 'enterprise', 'entrepreneurship', 'investment', 'finance', 'currency', 'market',
+                        'communication', 'information', 'digital', 'cyber', 'security', 'privacy', 'network', 'database', 'software', 'hardware',
+                        'medicine', 'healthcare', 'treatment', 'diagnosis', 'prevention', 'vaccination', 'therapy', 'rehabilitation', 'psychology', 'psychiatry',
+                        'education', 'curriculum', 'pedagogy', 'assessment', 'evaluation', 'learning', 'teaching', 'knowledge', 'skill', 'competence',
+                        'atmosphere', 'hydrosphere', 'lithosphere', 'biosphere', 'ecosystem', 'photosynthesis', 'respiration', 'metabolism', 'genetics', 'heredity',
+                        'electromagnetic', 'gravitational', 'nuclear', 'chemical', 'mechanical', 'thermal', 'kinetic', 'potential', 'renewable', 'sustainable',
+                        'industrial', 'agricultural', 'commercial', 'residential', 'urban', 'rural', 'suburban', 'metropolitan', 'cosmopolitan', 'provincial',
+                        'traditional', 'contemporary', 'classical', 'modern', 'postmodern', 'abstract', 'concrete', 'theoretical', 'practical', 'experimental'
+                    ],
+                    extreme: [
+                        // 初中三年级到高中词汇
+                        'quantum', 'mechanics', 'relativity', 'thermodynamics', 'electromagnetism', 'particle', 'wave', 'radiation', 'spectrum', 'frequency',
+                        'microbiology', 'biochemistry', 'neuroscience', 'immunology', 'endocrinology', 'pharmacology', 'epidemiology', 'pathology', 'anatomy', 'physiology',
+                        'jurisprudence', 'legislation', 'regulation', 'compliance', 'litigation', 'arbitration', 'mediation', 'testimony', 'evidence', 'jurisdiction',
+                        'macroeconomics', 'microeconomics', 'monetary', 'fiscal', 'inflation', 'recession', 'prosperity', 'investment', 'diversification', 'portfolio',
+                        'linguistics', 'semantics', 'syntax', 'phonetics', 'morphology', 'pragmatics', 'discourse', 'rhetoric', 'composition', 'literature',
+                        'archaeology', 'anthropology', 'paleontology', 'geology', 'meteorology', 'climatology', 'oceanography', 'astronomy', 'astrophysics', 'cosmology',
+                        'demographics', 'statistics', 'probability', 'calculus', 'trigonometry', 'geometry', 'algebra', 'arithmetic', 'combinatorics', 'logic',
+                        'architecture', 'engineering', 'civil', 'mechanical', 'electrical', 'chemical', 'biomedical', 'aerospace', 'naval', 'environmental',
+                        'journalism', 'broadcasting', 'publishing', 'advertising', 'marketing', 'public relations', 'media', 'communication', 'entertainment', 'culture',
+                        'psychology', 'sociology', 'anthropology', 'political science', 'international relations', 'public administration', 'social work', 'counseling', 'therapy',
+                        'biotechnology', 'genetic engineering', 'nanotechnology', 'artificial intelligence', 'machine learning', 'neural networks', 'robotics', 'automation',
+                        'sustainable', 'development', 'conservation', 'preservation', 'restoration', 'rehabilitation', 'remediation', 'mitigation', 'adaptation', 'resilience',
+                        'globalization', 'interdependence', 'multiculturalism', 'diversity', 'inclusion', 'equity', 'justice', 'human rights', 'civil liberties', 'democracy',
+                        'entrepreneurship', 'innovation', 'creativity', 'leadership', 'management', 'strategy', 'planning', 'execution', 'evaluation', 'improvement',
+                        'research', 'methodology', 'analysis', 'synthesis', 'evaluation', 'implementation', 'presentation', 'publication', 'collaboration', 'scholarship'
+                    ],
+                    university: [
+                        // 大学阶段词汇 - 仅使用提供的英文词汇
+                        'cell', 'gene', 'protein', 'RNA', 'DNA', 'expression', 'mutation', 'survival', 'risk', 'prognosis',
+                        'boxplot', 'bar', 'scatter', 'heatmap', 'volcano', 'bubble', 'radar', 'correlation', 'cluster', 'classify',
+                        'differential', 'enrichment', 'pathway', 'grid', 'fit', 'score', 'rank', 'compare', 'validate', 'predict'
+                    ],
+                    graduate: [
+                        // 研究生阶段词汇 - 仅使用提供的英文词汇
+                        'methylation', 'epigenetic', 'transcriptome', 'proteome', 'metabolome', 'single', 'cell', 'spatial', 'transcriptome', 'chromatin', 'accessibility',
+                        'immunotherapy', 'drug', 'sensitivity', 'gene', 'set', 'enrichment', 'PCA', 'tSNE', 'UMAP', 'WGCNA', 'survival', 'forest',
+                        'logistic', 'regression', 'support', 'vector', 'machine', 'SVM', 'random', 'forest',
+                        'TMB', 'neoantigen', 'immune', 'infiltration', 'microenvironment', 'biomarker', 'molecular', 'subtype', 'CNV', 'somatic', 'mutation',
+                        'mismatch', 'repair', 'MSI', 'microsatellite', 'instability',
+                        'elastic', 'net', 'LASSO', 'ridge', 'regression', 'cross', 'validation', 'Bayesian', 'Markov', 'Monte', 'Carlo', 'Bootstrap',
+                        'permutation', 'test', 'multiple', 'testing', 'correction', 'false', 'discovery', 'rate', 'FDR'
+                    ]
+                };
+
+                this.idiomWords = {
+                    easy: [
+                        // 小学高年级成语
+                        '一心一意', '三心二意', '四面八方', '五颜六色', '七上八下', '九牛一毛', '十全十美',
+                        '一帆风顺', '一鸣惊人', '一举两得', '一箭双雕', '一石二鸟', '一知半解', '一表人才',
+                        '人山人海', '人声鼎沸', '人才辈出', '人来人往', '人山人海', '人杰地灵', '人仰马翻',
+                        '大公无私', '大义灭亲', '大惊失色', '大喜过望', '大模大样', '大张旗鼓', '大显身手',
+                        '小心谨慎', '小题大做', '小巧玲珑', '小试牛刀', '小家碧玉', '小不忍则乱大谋',
+                        '千军万马', '千方百计', '千变万化', '千头万绪', '千辛万苦', '千言万语', '千钧一发',
+                        '风和日丽', '风平浪静', '风驰电掣', '风卷残云', '风雨无阻', '风雨同舟', '风餐露宿'
+                    ],
+                    medium: [
+                        // 初中低年级成语
+                        '画龙点睛', '画蛇添足', '掩耳盗铃', '亡羊补牢', '杞人忧天', '邯郸学步', '刻舟求剑',
+                        '叶公好龙', '对牛弹琴', '班门弄斧', '坐井观天', '盲人摸象', '买椟还珠', '走马观花',
+                        '胸有成竹', '得心应手', '左右逢源', '水到渠成', '顺理成章', '自然而然', '轻而易举',
+                        '持之以恒', '坚持不懈', '锲而不舍', '百折不挠', '不屈不挠', '再接再厉', '精益求精',
+                        '欣欣向荣', '蒸蒸日上', '日新月异', '突飞猛进', '一日千里', '日积月累', '水滴石穿',
+                        '和睦相处', '团结友爱', '互帮互助', '相濡以沫', '同舟共济', '风雨同舟', '患难与共',
+                        '勤学好问', '博览群书', '学无止境', '诲人不倦', '教学相长', '不耻下问', '循序渐进',
+                        '光明正大', '堂堂正正', '名正言顺', '理直气壮', '义正词严', '光明磊落', '大公无私'
+                    ],
+                    hard: [
+                        // 初中高年级成语
+                        '志同道合', '志在四方', '志存高远', '雄心壮志', '大展宏图', '前程似锦', '锦绣前程',
+                        '德才兼备', '品学兼优', '才貌双全', '文武双全', '能文能武', '能说会道', '能工巧匠',
+                        '艰苦奋斗', '勤俭节约', '勤勤恳恳', '兢兢业业', '一丝不苟', '精益求精', '实事求是',
+                        '实事求是', '求真务实', '脚踏实地', '埋头苦干', '任劳任怨', '默默无闻', '无私奉献',
+                        '团结一致', '同心协力', '齐心协力', '群策群力', '集思广益', '众志成城', '万众一心',
+                        '继往开来', '承前启后', '与时俱进', '开拓创新', '锐意进取', '勇于创新', '敢于担当',
+                        '胸怀大志', '高瞻远瞩', '深谋远虑', '远见卓识', '明察秋毫', '洞若观火', '火眼金睛',
+                        '临危不惧', '泰然自若', '从容不迫', '处变不惊', '镇定自若', '临危不乱', '处之泰然',
+                        '奋发图强', '自强不息', '百折不挠', '坚韧不拔', '锲而不舍', '持之以恒', '坚持不懈'
+                    ],
+                    extreme: [
+                        // 高中成语
+                        '鞠躬尽瘁', '死而后已', '呕心沥血', '卧薪尝胆', '破釜沉舟', '背水一战', '义无反顾',
+                        '舍生取义', '视死如归', '宁死不屈', '大义凛然', '临危不惧', '威武不屈', '坚贞不屈',
+                        '高瞻远瞩', '远见卓识', '深谋远虑', '深思熟虑', '深思熟虑', '老谋深算', '深思熟虑',
+                        '雄才大略', '经天纬地', '经天纬地', '经纶济世', '经世之才', '匡时济世', '经天纬地',
+                        '德高望重', '德才兼备', '才德兼备', '德才兼备', '品学兼优', '品学兼优', '才貌双全',
+                        '博古通今', '博学多才', '博览群书', '学富五车', '才高八斗', '满腹经纶', '才华横溢',
+                        '运筹帷幄', '决胜千里', '料事如神', '神机妙算', '未卜先知', '先见之明', '料事如神',
+                        '出类拔萃', '超群绝伦', '独一无二', '首屈一指', '名列前茅', '出人头地', '独占鳌头',
+                        '励精图治', '奋发图强', '自强不息', '厚德载物', '上善若水', '大智若愚', '大巧若拙'
+                    ],
+                    university: [
+                        // 大学阶段成语 - 学术研究和数据分析相关
+                        '厚积薄发', '博采众长', '融会贯通', '举一反三', '触类旁通', '温故知新', '学以致用',
+                        '精益求精', '一丝不苟', '严谨治学', '实事求是', '追根究底', '刨根问底', '寻根究底',
+                        '去伪存真', '去粗取精', '分门别类', '条分缕析', '纲举目张', '提纲挈领', '去粗取精',
+                        '按图索骥', '顺藤摸瓜', '追本溯源', '追根究底', '穷源竟委', '追本溯源', '寻根究底',
+                        '胸有成竹', '成竹在胸', '心中有数', '了如指掌', '洞若观火', '明察秋毫', '见微知著',
+                        '融会贯通', '举一反三', '闻一知十', '触类旁通', '豁然开朗', '茅塞顿开', '恍然大悟',
+                        '循序渐进', '按部就班', '有条不紊', '井井有条', '层次分明', '脉络清晰', '条理分明',
+                        '独树一帜', '别具一格', '独辟蹊径', '别出心裁', '独具匠心', '标新立异', '推陈出新',
+                        '去伪存真', '明辨是非', '去粗取精', '精益求精', '一丝不苟', '精益求精', '百密一疏',
+                        '集思广益', '群策群力', '同心协力', '众志成城', '和衷共济', '携手并进', '取长补短',
+                        '青出于蓝', '后来居上', '百尺竿头', '更进一步', '蒸蒸日上', '欣欣向荣', '如日中天',
+                        '厚积薄发', '博采众长', '融会贯通', '举一反三', '触类旁通', '温故知新', '学以致用'
+                    ],
+                    graduate: [
+                        // 研究生阶段成语 - 高级研究思维和方法论
+                        '登峰造极', '炉火纯青', '出神入化', '巧夺天工', '鬼斧神工', '别具匠心', '独到见解',
+                        '融会贯通', '举一反三', '闻一知十', '触类旁通', '豁然开朗', '茅塞顿开', '恍然大悟',
+                        '追根究底', '寻根问底', '刨根问底', '穷源竟委', '追本溯源', '深挖根源', '探究本质',
+                        '精益求精', '一丝不苟', '严谨治学', '实事求是', '客观公正', '求真务实', '追求真理',
+                        '独树一帜', '自成一家', '别开生面', '另辟蹊径', '独辟蹊径', '独具慧眼', '独到见解',
+                        '高瞻远瞩', '深谋远虑', '深思熟虑', '远见卓识', '真知灼见', '洞若观火', '明察秋毫',
+                        '继往开来', '承前启后', '与时俱进', '开拓创新', '锐意进取', '勇于探索', '敢于创新',
+                        '学以致用', '知行合一', '理论联系实际', '实事求是', '求真务实', '脚踏实地', '埋头苦干',
+                        '厚积薄发', '博采众长', '兼收并蓄', '去伪存真', '去粗取精', '融会贯通', '举一反三',
+                        '锲而不舍', '持之以恒', '坚韧不拔', '百折不挠', '自强不息', '奋发图强', '励精图治',
+                        '厚德载物', '上善若水', '大智若愚', '大巧若拙', '返璞归真', '抱朴守拙', '守正创新',
+                        '运筹帷幄', '决胜千里', '胸有成竹', '成竹在胸', '稳操胜券', '十拿九稳', '万无一失',
+                        '博古通今', '学贯中西', '博学多闻', '见多识广', '阅历丰富', '经验老到', '驾轻就熟',
+                        '精益求精', '一丝不苟', '严谨治学', '实事求是', '客观公正', '求真务实', '追求真理',
+                        '独树一帜', '自成一家', '别开生面', '另辟蹊径', '独辟蹊径', '独具慧眼', '独到见解'
+                    ]
+                };
+
+                this.chineseWords = {
+                    easy: [
+                        // 小学四年级词汇
+                        '祖国', '人民', '英雄', '模范', '榜样', '传统', '文化', '历史', '故事', '传说',
+                        '知识', '科学', '技术', '发明', '创造', '发现', '探索', '研究', '实验', '观察',
+                        '自然', '环境', '保护', '污染', '清洁', '绿色', '美丽', '壮观', '奇妙', '神秘',
+                        '健康', '锻炼', '运动', '营养', '卫生', '疾病', '预防', '治疗', '康复', '保健',
+                        '交通', '工具', '规则', '安全', '文明', '礼貌', '秩序', '纪律', '责任', '义务',
+                        '植物', '动物', '生长', '繁殖', '进化', '生态', '平衡', '食物', '链', '网络',
+                        '团结', '友谊', '和平', '进步', '发展', '创新', '未来', '希望', '梦想', '理想',
+                        '春天', '夏天', '秋天', '冬天', '早晨', '中午', '晚上', '今天', '明天', '昨天',
+                        '美丽', '漂亮', '可爱', '聪明', '勤奋', '努力', '认真', '仔细', '干净', '整齐',
+                        '高兴', '快乐', '开心', '生气', '难过', '伤心', '害怕', '紧张', '兴奋', '激动',
+                        '帮助', '关心', '爱护', '保护', '尊重', '感谢', '道歉', '原谅', '分享', '合作',
+                        '学校', '家庭', '社区', '公园', '商店', '医院', '邮局', '银行', '车站', '机场',
+                        '语文', '数学', '英语', '音乐', '美术', '体育', '科学', '电脑', '品德', '安全',
+                        '读书', '写字', '计算', '画画', '唱歌', '跳舞', '跑步', '跳高', '游泳', '打球'
+                    ],
+                    medium: [
+                        // 小学五、六年级词汇
+                        '社会', '国家', '民族', '团结', '统一', '独立', '自由', '平等', '公正', '法治',
+                        '经济', '发展', '改革', '开放', '建设', '现代化', '工业化', '信息化', '城市化', '全球化',
+                        '文化', '教育', '科技', '卫生', '体育', '艺术', '传媒', '旅游', '服务', '管理',
+                        '资源', '能源', '材料', '工业', '农业', '商业', '金融', '贸易', '投资', '消费',
+                        '政治', '民主', '法制', '权力', '权利', '义务', '公民', '社会', '组织', '制度',
+                        '思想', '理论', '观点', '认识', '实践', '真理', '规律', '本质', '现象', '原因',
+                        '学习', '研究', '思考', '分析', '综合', '判断', '推理', '证明', '反驳', '论证',
+                        '生活', '工作', '学习', '娱乐', '休息', '健康', '幸福', '成功', '失败', '困难',
+                        '品德', '修养', '道德', '情操', '理想', '信念', '追求', '奋斗', '拼搏', '进取',
+                        '责任', '担当', '使命', '奉献', '服务', '贡献', '价值', '意义', '目标', '方向',
+                        '创新', '创造', '发明', '发现', '改进', '提高', '完善', '优化', '升级', '更新',
+                        '和谐', '平衡', '协调', '持续', '稳定', '有序', '规范', '标准', '质量', '效率',
+                        '传承', '发扬', '光大', '弘扬', '倡导', '推广', '普及', '宣传', '教育', '引导',
+                        '交流', '合作', '互助', '共享', '共赢', '互利', '互补', '互动', '促进', '推动',
+                        '挑战', '机遇', '竞争', '发展', '进步', '繁荣', '富强', '文明', '民主', '和谐'
+                    ],
+                    hard: [
+                        // 初中一、二年级词汇
+                        '物理', '化学', '生物', '地理', '历史', '政治', '语文', '数学', '英语', '体育',
+                        '力学', '热学', '电学', '光学', '声学', '原子', '分子', '元素', '化合物', '反应',
+                        '细胞', '组织', '器官', '系统', '遗传', '变异', '进化', '生态', '环境', '保护',
+                        '中国', '世界', '亚洲', '欧洲', '非洲', '美洲', '大洋洲', '南极洲', '太平洋', '大西洋',
+                        '古代', '近代', '现代', '当代', '朝代', '帝王', '革命', '改革', '开放', '发展',
+                        '诗词', '散文', '小说', '戏剧', '文学', '艺术', '音乐', '美术', '舞蹈', '戏曲',
+                        '代数', '几何', '函数', '方程', '不等式', '统计', '概率', '图形', '变换', '证明',
+                        '民主', '法制', '权利', '义务', '公民', '国家', '政府', '宪法', '法律', '法规',
+                        '经济', '市场', '商品', '货币', '价格', '价值', '供求', '竞争', '垄断', '调控',
+                        '文化', '传统', '习俗', '节日', '礼仪', '道德', '信仰', '哲学', '思想', '观念',
+                        '科学', '技术', '发明', '创造', '创新', '发现', '研究', '实验', '探索', '实践',
+                        '教育', '学校', '教师', '学生', '课程', '教材', '考试', '评价', '升学', '就业'
+                    ],
+                    extreme: [
+                        // 初中三年级到高中词汇
+                        '量子力学', '相对论', '电磁学', '热力学', '光学', '原子核', '粒子', '波动', '场论', '弦理论',
+                        '生物化学', '分子生物学', '遗传学', '生态学', '进化生物学', '神经科学', '免疫学', '病理学', '药理学', '生理学',
+                        '马克思主义', '毛泽东思想', '邓小平理论', '三个代表', '科学发展观', '习近平新时代中国特色社会主义思想',
+                        '辩证唯物主义', '历史唯物主义', '政治经济学', '科学社会主义', '中国特色社会主义', '共产主义',
+                        '物质文明', '政治文明', '精神文明', '社会文明', '生态文明', '五位一体', '四个全面', '新发展理念',
+                        '市场经济', '计划经济', '混合经济', '知识经济', '数字经济', '平台经济', '共享经济', '循环经济',
+                        '全球化', '区域化', '多极化', '信息化', '工业化', '城市化', '现代化', '国际化', '一体化',
+                        '人工智能', '大数据', '云计算', '物联网', '区块链', '5G通信', '智能制造', '新能源', '新材料', '生物医药',
+                        '文化自信', '文化自觉', '文化自强', '文化创新', '文化传承', '文化交流', '文明互鉴', '文化软实力',
+                        '教育现代化', '教育公平', '素质教育', '立德树人', '全面发展', '终身学习', '学习型社会', '人力资源',
+                        '健康中国', '全民健身', '健康生活', '心理健康', '公共卫生', '医疗保障', '医疗服务', '药品安全',
+                        '美丽中国', '生态文明', '绿色发展', '低碳发展', '循环发展', '环境治理', '污染防治', '生态保护',
+                        '一带一路', '人类命运共同体', '新型国际关系', '多边主义', '全球治理', '国际合作', '和平发展',
+                        '科技创新', '制度创新', '理论创新', '实践创新', '文化创新', '管理创新', '全面创新', '协同创新',
+                        '高质量发展', '供给侧结构性改革', '需求侧管理', '双循环发展格局', '新发展格局', '现代化经济体系'
+                    ],
+                    university: [
+                        // 大学阶段词汇 - 仅使用提供的中文词汇
+                        '细胞', '基因', '蛋白', 'RNA', 'DNA', '表达', '突变', '生存', '风险', '预后',
+                        '箱线图', '柱状图', '散点图', '热图', '火山图', '气泡图', '雷达图', '相关', '聚类', '分类',
+                        '差异', '富集', '通路', '网格', '拟合', '评分', '排名', '比较', '验证', '预测'
+                    ],
+                    graduate: [
+                        // 研究生阶段词汇 - 仅使用提供的中文词汇
+                        '甲基化', '表观遗传', '转录组', '蛋白质组', '代谢组', '单细胞', '空间转录', '染色质可及性',
+                        '免疫治疗', '药物敏感性', '基因集富集', '主成分分析', 'tSNE', 'UMAP', 'WGCNA', '生存森林', '逻辑回归',
+                        '支持向量机', '随机森林',
+                        '肿瘤突变负荷', '新抗原', '免疫浸润', '微环境', '生物标志物', '分子亚型', '拷贝数变异', '体细胞突变',
+                        '错配修复', '微卫星不稳定',
+                        '弹性网络', 'LASSO', '岭回归', '交叉验证', '贝叶斯', '马尔可夫', '蒙特卡洛', 'Bootstrap',
+                        '置换检验', '多重比较校正', '假发现率'
+                    ]
+                };
+
+                // 游戏状态
+                this.currentLanguage = 'chinese';
+                this.currentDifficulty = 'easy';
+                this.currentWord = '准备开始';
+                this.inputValue = '';
+                this.wordDisplay = [];
+                this.isPlaying = false;
+                this.isPaused = false;
+                this.gameOver = false;
+
+                // 统计数据
+                this.timeLeft = 60;
+                this.wpm = 0;
+                this.accuracy = 100;
+                this.score = 0;
+                this.progress = 0;
+
+                // 内部数据
+                this.startTime = null;
+                this.typedChars = 0;
+                this.correctChars = 0;
+                this.totalWords = 0;
+                this.timer = null;
+                this.audioEnabled = true;
+                this.usedWords = new Set(); // 跟踪已使用的词汇
+
+                this.initElements();
+                this.bindEvents();
+                this.initAudio();
+            }
+
+            initElements() {
+                this.elements = {
+                    chineseBtn: document.getElementById('chineseBtn'),
+                    englishBtn: document.getElementById('englishBtn'),
+                    customBtn: document.getElementById('customBtn'),
+                    startBtn: document.getElementById('startBtn'),
+                    pauseBtn: document.getElementById('pauseBtn'),
+                    resetBtn: document.getElementById('resetBtn'),
+                    audioBtn: document.getElementById('audioBtn'),
+                    textInput: document.getElementById('textInput'),
+                    currentWord: document.getElementById('currentWord'),
+                    timer: document.getElementById('timer'),
+                    wpm: document.getElementById('wpm'),
+                    accuracy: document.getElementById('accuracy'),
+                    score: document.getElementById('score'),
+                    progressFill: document.getElementById('progressFill'),
+                    gameOver: document.getElementById('gameOver'),
+                    finalScore: document.getElementById('finalScore'),
+                    finalWpm: document.getElementById('finalWpm'),
+                    finalAccuracy: document.getElementById('finalAccuracy'),
+                    totalWords: document.getElementById('totalWords'),
+                    restartBtn: document.getElementById('restartBtn'),
+                    shareBtn: document.getElementById('shareBtn'),
+                    difficultyBtns: document.querySelectorAll('[data-level]'),
+                    langBtns: document.querySelectorAll('[data-lang]'),
+
+                    // 自定义词汇相关元素
+                    customVocabModal: document.getElementById('customVocabModal'),
+                    closeCustomModal: document.getElementById('closeCustomModal'),
+                    vocabTextarea: document.getElementById('vocabTextarea'),
+                    vocabFile: document.getElementById('vocabFile'),
+                    detectedDelimiter: document.getElementById('detectedDelimiter'),
+                    vocabCount: document.getElementById('vocabCount'),
+                    vocabPreview: document.getElementById('vocabPreview'),
+                    shuffleVocab: document.getElementById('shuffleVocab'),
+                    saveCustomVocab: document.getElementById('saveCustomVocab'),
+                    clearCustomVocab: document.getElementById('clearCustomVocab'),
+                    exportCustomVocab: document.getElementById('exportCustomVocab')
+                };
+
+                // 初始化自定义词汇数据
+                this.customWords = [];
+                this.detectedDelimiters = [];
+
+                // 初始化显示
+                this.updateWordDisplay();
+                this.updateCursor();
+            }
+
+            bindEvents() {
+                // 语言选择
+                this.elements.langBtns.forEach(btn => {
+                    btn.addEventListener('click', (e) => this.selectLanguage(e));
+                });
+
+                // 难度选择
+                this.elements.difficultyBtns.forEach(btn => {
+                    btn.addEventListener('click', (e) => this.selectDifficulty(e));
+                });
+
+                // 控制按钮
+                this.elements.startBtn.addEventListener('click', () => this.startGame());
+                this.elements.pauseBtn.addEventListener('click', () => this.togglePause());
+                this.elements.resetBtn.addEventListener('click', () => this.resetGame());
+                this.elements.audioBtn.addEventListener('click', () => this.toggleAudio());
+
+                // 输入处理
+                this.elements.textInput.addEventListener('input', (e) => this.handleInput(e));
+                this.elements.textInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && this.currentWord === this.elements.textInput.value) {
+                        this.nextWord();
+                    }
+                });
+
+                // 游戏结束按钮
+                this.elements.restartBtn.addEventListener('click', () => {
+                    this.elements.gameOver.classList.remove('active');
+                    this.startGame();
+                });
+
+                this.elements.shareBtn.addEventListener('click', () => this.shareResults());
+
+                // 自定义词汇相关事件
+                this.elements.customBtn.addEventListener('click', () => this.openCustomVocabModal());
+                this.elements.closeCustomModal.addEventListener('click', () => this.closeCustomVocabModal());
+                this.elements.vocabTextarea.addEventListener('input', () => this.processVocabInput());
+                this.elements.vocabFile.addEventListener('change', (e) => this.handleFileUpload(e));
+
+                // Tab切换
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => this.switchTab(e));
+                });
+
+                // 分隔符选择
+                document.querySelectorAll('input[name="delimiter"]').forEach(radio => {
+                    radio.addEventListener('change', () => this.processVocabInput());
+                });
+
+                // 自定义词汇操作按钮
+                this.elements.shuffleVocab.addEventListener('click', () => this.shuffleCustomVocab());
+                this.elements.saveCustomVocab.addEventListener('click', () => this.saveCustomVocab());
+                this.elements.clearCustomVocab.addEventListener('click', () => this.clearCustomVocab());
+                this.elements.exportCustomVocab.addEventListener('click', () => this.exportCustomVocab());
+
+                // 模态框背景点击关闭
+                this.elements.customVocabModal.addEventListener('click', (e) => {
+                    if (e.target === this.elements.customVocabModal) {
+                        this.closeCustomVocabModal();
+                    }
+                });
+
+                // 页面卸载时清理
+                window.addEventListener('beforeunload', () => {
+                    if (this.timer) {
+                        clearInterval(this.timer);
+                    }
+                });
+            }
+
+            initAudio() {
+                // 创建音频上下文
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (error) {
+                    console.log('音频上下文初始化失败:', error);
+                }
+
+                // 加载设置
+                const savedVolume = localStorage.getItem('audioVolume');
+                if (savedVolume !== null) {
+                    this.volume = parseFloat(savedVolume);
+                } else {
+                    this.volume = 0.7;
+                }
+
+                const savedEnabled = localStorage.getItem('audioEnabled');
+                this.audioEnabled = savedEnabled !== 'false';
+            }
+
+            selectLanguage(e) {
+                if (this.isPlaying) return;
+
+                const lang = e.target.dataset.lang;
+                this.currentLanguage = lang;
+
+                // 更新按钮状态
+                this.elements.langBtns.forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                e.target.classList.add('active');
+
+                // 如果选择自定义词汇，检查是否有词汇
+                if (lang === 'custom') {
+                    if (!this.customWords || this.customWords.length === 0) {
+                        this.showToast('自定义词汇为空，请先添加词汇', 'warning');
+                        // 自动打开自定义词汇模态框
+                        this.openCustomVocabModal();
+                        // 切换回中文模式
+                        setTimeout(() => {
+                            this.elements.chineseBtn.click();
+                        }, 100);
+                        return;
+                    }
+                }
+
+                this.updateCursor();
+                this.updateWordDisplay();  // 更新显示的提示文本
+            }
+
+            selectDifficulty(e) {
+                if (this.isPlaying) return;
+
+                const level = e.target.dataset.level;
+                this.currentDifficulty = level;
+
+                // 更新按钮状态
+                this.elements.difficultyBtns.forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                e.target.classList.add('active');
+
+                this.updateWordDisplay();  // 更新显示（虽然提示文本不变）
+            }
+
+            startGame() {
+                this.isPlaying = true;
+                this.isPaused = false;
+                this.gameOver = false;
+                this.timeLeft = 60;
+                this.score = 0;
+                this.correctChars = 0;
+                this.typedChars = 0;
+                this.totalWords = 0;
+                this.wpm = 0;
+                this.accuracy = 100;
+                this.progress = 0;
+                this.startTime = Date.now();
+                this.usedWords = new Set(); // 重置已使用词汇集合
+
+                this.elements.startBtn.style.display = 'none';
+                this.elements.pauseBtn.style.display = 'inline-block';
+                this.elements.gameOver.classList.remove('active');
+                this.elements.textInput.disabled = false;
+                this.elements.textInput.value = '';
+                this.elements.textInput.focus();
+
+                this.nextWord();
+                this.startTimer();
+                this.playSound('gameStart');
+            }
+
+            togglePause() {
+                if (this.isPaused) {
+                    this.resumeGame();
+                } else {
+                    this.pauseGame();
+                }
+            }
+
+            pauseGame() {
+                this.isPaused = true;
+                this.elements.pauseBtn.textContent = '继续';
+                clearInterval(this.timer);
+                this.elements.textInput.disabled = true;
+            }
+
+            resumeGame() {
+                this.isPaused = false;
+                this.elements.pauseBtn.textContent = '暂停';
+                this.elements.textInput.disabled = false;
+                this.elements.textInput.focus();
+                this.startTimer();
+            }
+
+            resetGame() {
+                this.isPlaying = false;
+                this.isPaused = false;
+                this.gameOver = false;
+
+                if (this.timer) {
+                    clearInterval(this.timer);
+                }
+
+                this.timeLeft = 60;
+                this.score = 0;
+                this.correctChars = 0;
+                this.typedChars = 0;
+                this.totalWords = 0;
+                this.wpm = 0;
+                this.accuracy = 100;
+                this.progress = 0;
+
+                this.elements.startBtn.style.display = 'inline-block';
+                this.elements.pauseBtn.style.display = 'none';
+                this.elements.gameOver.classList.remove('active');
+                this.elements.textInput.disabled = true;
+                this.elements.textInput.value = '';
+
+                this.elements.currentWord.innerHTML = '<span class="cursor"></span>';
+                this.updateStats();
+                this.elements.progressFill.style.width = '0%';
+            }
+
+            nextWord() {
+                let wordList = [];
+
+                if (this.currentLanguage === 'chinese') {
+                    wordList = this.chineseWords[this.currentDifficulty];
+                } else if (this.currentLanguage === 'english') {
+                    wordList = this.words[this.currentDifficulty];
+                } else if (this.currentLanguage === 'idiom') {
+                    wordList = this.idiomWords[this.currentDifficulty];
+                } else if (this.currentLanguage === 'custom') {
+                    wordList = this.customWords;
+                }
+
+                // 检查自定义词汇是否为空
+                if (this.currentLanguage === 'custom' && (!wordList || wordList.length === 0)) {
+                    this.showToast('自定义词汇为空，请先添加词汇', 'warning');
+                    // 切换回中文模式
+                    this.selectLanguage({ target: this.elements.chineseBtn });
+                    return;
+                }
+
+                // 筛选出未使用过的词汇
+                const availableWords = wordList.filter(word => !this.usedWords.has(word));
+
+                let newWord;
+
+                if (availableWords.length > 0) {
+                    // 还有未使用的词汇，随机选择一个
+                    const randomIndex = Math.floor(Math.random() * availableWords.length);
+                    newWord = availableWords[randomIndex];
+                    this.usedWords.add(newWord); // 标记为已使用
+                } else {
+                    // 所有词汇都已使用，重置使用记录或结束游戏
+                    if (this.usedWords.size >= wordList.length) {
+                        // 重新开始使用词汇（可选：或者直接结束游戏）
+                        this.usedWords.clear(); // 清空已使用记录
+                        const randomIndex = Math.floor(Math.random() * wordList.length);
+                        newWord = wordList[randomIndex];
+                        this.usedWords.add(newWord);
+                    } else {
+                        // 备用方案：随机选择（理论上不会到达这里）
+                        const randomIndex = Math.floor(Math.random() * wordList.length);
+                        newWord = wordList[randomIndex];
+                    }
+                }
+
+                this.currentWord = newWord;
+                this.elements.textInput.value = '';
+                this.totalWords++;
+                this.updateWordDisplay();
+                this.updateProgress();
+            }
+
+            updateWordDisplay() {
+                const currentWord = this.currentWord;
+                const inputValue = this.elements.textInput.value;
+                const wordDisplay = [];
+
+                // 如果游戏未开始，显示提示信息
+                if (!this.isPlaying && !this.gameOver) {
+                    let hintText;
+                    switch (this.currentLanguage) {
+                        case 'chinese':
+                            hintText = '点击"开始游戏"开始练习';
+                            break;
+                        case 'english':
+                            hintText = 'Click "Start Game" to begin';
+                            break;
+                        case 'idiom':
+                            hintText = '点击"开始游戏"开始成语练习';
+                            break;
+                        case 'custom':
+                            hintText = `自定义词汇模式 (${this.customWords.length} 个词汇)`;
+                            break;
+                        default:
+                            hintText = '点击"开始游戏"开始练习';
+                    }
+                    this.elements.currentWord.innerHTML = `<span style="opacity: 0.6;">${hintText}</span><span class="cursor"></span>`;
+                    return;
+                }
+
+                const isChinese = this.currentLanguage === 'chinese' || this.currentLanguage === 'idiom' || this.currentLanguage === 'custom';
+
+                if (isChinese) {
+                    const inputChars = Array.from(inputValue);
+                    const targetChars = Array.from(currentWord);
+
+                    for (let i = 0; i < targetChars.length; i++) {
+                        if (i < inputChars.length) {
+                            if (inputChars[i] === targetChars[i]) {
+                                wordDisplay.push({
+                                    char: targetChars[i],
+                                    class: 'correct'
+                                });
+                            } else {
+                                wordDisplay.push({
+                                    char: targetChars[i],
+                                    class: 'incorrect'
+                                });
+                            }
+                        } else {
+                            wordDisplay.push({
+                                char: targetChars[i],
+                                class: 'remaining'
+                            });
+                        }
+                    }
+                } else {
+                    for (let i = 0; i < currentWord.length; i++) {
+                        if (i < inputValue.length) {
+                            if (inputValue[i].toLowerCase() === currentWord[i].toLowerCase()) {
+                                wordDisplay.push({
+                                    char: currentWord[i],
+                                    class: 'correct'
+                                });
+                            } else {
+                                wordDisplay.push({
+                                    char: currentWord[i],
+                                    class: 'incorrect'
+                                });
+                            }
+                        } else {
+                            wordDisplay.push({
+                                char: currentWord[i],
+                                class: 'remaining'
+                            });
+                        }
+                    }
+                }
+
+                wordDisplay.push('<span class="cursor"></span>');
+
+                // 将对象数组转换为HTML字符串
+                const htmlContent = wordDisplay.map(item => {
+                    if (typeof item === 'string') {
+                        return item; // 已经是HTML字符串（如cursor）
+                    }
+                    return `<span class="char ${item.class}">${item.char}</span>`;
+                }).join('');
+
+                this.elements.currentWord.innerHTML = htmlContent;
+            }
+
+            updateCursor() {
+                if (!this.isPlaying) {
+                    this.elements.currentWord.innerHTML = '<span class="cursor"></span>';
+                }
+            }
+
+            handleInput(e) {
+                if (!this.isPlaying || this.isPaused) return;
+
+                const inputValue = e.target.value;
+
+                // 重新计算正确字符数
+                this.calculateCorrectChars(inputValue);
+
+                // 更新总输入字符数
+                if (this.currentLanguage === 'chinese') {
+                    this.typedChars = Array.from(inputValue).length;
+                } else {
+                    this.typedChars = inputValue.length;
+                }
+
+                // 检查是否完全正确
+                const isCorrect = this.currentLanguage === 'chinese' ?
+                    Array.from(inputValue).every((char, i) => char === this.currentWord[i]) :
+                    inputValue.split('').every((char, i) => char.toLowerCase() === this.currentWord[i].toLowerCase());
+
+                if (isCorrect && inputValue === this.currentWord) {
+                    this.correctWord();
+                }
+
+                this.updateWordDisplay();
+                this.updateStats();
+            }
+
+            // 计算当前输入的正确字符数
+            calculateCorrectChars(inputValue) {
+                let correctCount = 0;
+
+                if (this.currentLanguage === 'chinese' || this.currentLanguage === 'idiom' || this.currentLanguage === 'custom') {
+                    const inputChars = Array.from(inputValue);
+                    const targetChars = Array.from(this.currentWord);
+
+                    for (let i = 0; i < Math.min(inputChars.length, targetChars.length); i++) {
+                        if (inputChars[i] === targetChars[i]) {
+                            correctCount++;
+                        }
+                    }
+                } else {
+                    for (let i = 0; i < Math.min(inputValue.length, this.currentWord.length); i++) {
+                        if (inputValue[i].toLowerCase() === this.currentWord[i].toLowerCase()) {
+                            correctCount++;
+                        }
+                    }
+                }
+
+                return correctCount;
+            }
+
+            correctWord() {
+                const correctChars = this.correctChars + this.currentWord.length;
+                const difficultyMultiplier = this.getDifficultyMultiplier();
+                const score = this.score + (this.currentWord.length * difficultyMultiplier);
+
+                this.score = score;
+                this.correctChars = correctChars;
+
+                this.elements.textInput.classList.add('correct');
+                setTimeout(() => {
+                    this.elements.textInput.classList.remove('correct');
+                    this.nextWord();
+                }, 300);
+
+                this.playSound('correct');
+            }
+
+            getDifficultyMultiplier() {
+                const multipliers = {
+                    easy: 1,
+                    medium: 2,
+                    hard: 3,
+                    extreme: 5
+                };
+                return multipliers[this.currentDifficulty];
+            }
+
+            startTimer() {
+                if (this.timer) {
+                    clearInterval(this.timer);
+                }
+
+                let lastCountdownSecond = 60;
+
+                this.timer = setInterval(() => {
+                    if (!this.isPaused) {
+                        const timeLeft = this.timeLeft - 1;
+                        this.timeLeft = timeLeft;
+                        this.elements.timer.textContent = timeLeft;
+
+                        // 倒计时声音
+                        if (timeLeft <= 10 && timeLeft !== lastCountdownSecond) {
+                            this.playCountdownSound(timeLeft);
+                            lastCountdownSecond = timeLeft;
+                        }
+
+                        if (timeLeft <= 0) {
+                            this.endGame();
+                        }
+                    }
+                }, 1000);
+            }
+
+            updateStats() {
+                // 计算WPM
+                if (this.startTime && this.typedChars > 0) {
+                    const timeElapsed = (Date.now() - this.startTime) / 1000 / 60;
+                    let wordsTyped;
+
+                    if (this.currentLanguage === 'chinese' || this.currentLanguage === 'idiom' || this.currentLanguage === 'custom') {
+                        // 中文、成语和自定义词汇：每个字算一个词
+                        wordsTyped = this.correctChars;
+                    } else {
+                        // 英文：5个字符算一个词
+                        wordsTyped = this.correctChars / 5;
+                    }
+
+                    this.wpm = Math.round(wordsTyped / timeElapsed) || 0;
+                    this.elements.wpm.textContent = this.wpm;
+                }
+
+                // 计算准确率 - 使用当前输入的实时计算
+                if (this.typedChars > 0) {
+                    const currentCorrectChars = this.calculateCorrectChars(this.elements.textInput.value);
+                    const accuracy = Math.round((currentCorrectChars / this.typedChars) * 100);
+                    this.accuracy = Math.max(0, Math.min(100, accuracy)); // 确保在0-100之间
+                    this.elements.accuracy.textContent = this.accuracy + '%';
+                } else {
+                    this.accuracy = 100;
+                    this.elements.accuracy.textContent = '100%';
+                }
+
+                // 更新显示
+                this.elements.score.textContent = this.score;
+            }
+
+            updateProgress() {
+                const progress = Math.min((this.totalWords / 20) * 100, 100);
+                this.elements.progressFill.style.width = progress + '%';
+            }
+
+            endGame() {
+                if (this.timer) {
+                    clearInterval(this.timer);
+                }
+
+                const timeElapsed = (Date.now() - this.startTime) / 1000 / 60;
+
+                // 计算最终WPM
+                let wordsTyped;
+                if (this.currentLanguage === 'chinese' || this.currentLanguage === 'idiom' || this.currentLanguage === 'custom') {
+                    // 中文、成语和自定义词汇：每个字算一个词
+                    wordsTyped = this.correctChars;
+                } else {
+                    // 英文：5个字符算一个词
+                    wordsTyped = this.correctChars / 5;
+                }
+
+                const finalWpm = Math.round(wordsTyped / timeElapsed) || 0;
+                const finalAccuracy = this.typedChars > 0 ?
+                    Math.round((this.correctChars / this.typedChars) * 100) : 0;
+
+                this.gameOver = true;
+                this.isPlaying = false;
+
+                this.finalWpm = finalWpm;
+                this.finalAccuracy = finalAccuracy;
+                this.finalScore = this.score;
+
+                this.elements.finalScore.textContent = this.finalScore;
+                this.elements.finalWpm.textContent = this.finalWpm;
+                this.elements.finalAccuracy.textContent = this.finalAccuracy + '%';
+                this.totalWords = this.totalWords - 1;
+                this.elements.totalWords.textContent = this.totalWords;
+
+                this.elements.textInput.disabled = true;
+                this.elements.startBtn.style.display = 'inline-block';
+                this.elements.pauseBtn.style.display = 'none';
+
+                this.playSound('gameEnd');
+                this.checkAndPlayNewRecord();
+
+                this.saveBestScore(this.score);
+
+                // 显示游戏结束界面
+                this.elements.gameOver.classList.add('active');
+            }
+
+            checkAndPlayNewRecord() {
+                const bestScore = this.getBestScore();
+                if (this.score > bestScore) {
+                    setTimeout(() => {
+                        this.playSound('newRecord');
+                        this.showToast('🎉 新纪录！', 'success');
+                    }, 500);
+                }
+            }
+
+            saveBestScore(score) {
+                try {
+                    const bestScore = localStorage.getItem('bestScore') || 0;
+                    if (score > bestScore) {
+                        localStorage.setItem('bestScore', score);
+                        this.showToast('新纪录！', 'success');
+                    }
+                } catch (e) {
+                    console.error('保存分数失败', e);
+                }
+            }
+
+            getBestScore() {
+                try {
+                    return parseInt(localStorage.getItem('bestScore') || '0');
+                } catch (e) {
+                    return 0;
+                }
+            }
+
+            playSound(type) {
+                if (!this.audioEnabled) return;
+
+                try {
+                    // 使用简单的音调
+                    if (this.audioContext) {
+                        const oscillator = this.audioContext.createOscillator();
+                        const gainNode = this.audioContext.createGain();
+
+                        oscillator.connect(gainNode);
+                        gainNode.connect(this.audioContext.destination);
+
+                        const frequencies = {
+                            correct: 800,
+                            wrong: 300,
+                            gameStart: 600,
+                            gameEnd: 500,
+                            countdown: 1000,
+                            newRecord: 1200
+                        };
+
+                        const frequency = frequencies[type] || 800;
+                        const duration = type === 'newRecord' ? 300 : 150;
+
+                        oscillator.frequency.value = frequency;
+                        oscillator.type = 'sine';
+
+                        gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+                        gainNode.gain.linearRampToValueAtTime(this.volume * 0.3, this.audioContext.currentTime + 0.01);
+                        gainNode.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + duration / 1000);
+
+                        oscillator.start(this.audioContext.currentTime);
+                        oscillator.stop(this.audioContext.currentTime + duration / 1000);
+                    }
+                } catch (error) {
+                    console.log('音效播放失败:', error);
+                }
+            }
+
+            playCountdownSound(seconds) {
+                if (seconds <= 10 && seconds > 0) {
+                    const frequency = 1000 - (seconds * 50);
+                    this.playTone(frequency, 100);
+                }
+            }
+
+            playTone(frequency, duration) {
+                try {
+                    if (this.audioContext) {
+                        const oscillator = this.audioContext.createOscillator();
+                        const gainNode = this.audioContext.createGain();
+
+                        oscillator.connect(gainNode);
+                        gainNode.connect(this.audioContext.destination);
+
+                        oscillator.frequency.value = frequency;
+                        oscillator.type = 'sine';
+
+                        gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+                        gainNode.gain.linearRampToValueAtTime(this.volume * 0.3, this.audioContext.currentTime + 0.01);
+                        gainNode.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + duration / 1000);
+
+                        oscillator.start(this.audioContext.currentTime);
+                        oscillator.stop(this.audioContext.currentTime + duration / 1000);
+                    }
+                } catch (error) {
+                    console.log('音调播放失败:', error);
+                }
+            }
+
+            showToast(message, type = 'success') {
+                // 创建自定义提示
+                const toast = document.createElement('div');
+                toast.textContent = message;
+                toast.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background-color: ${type === 'success' ? 'rgba(0, 255, 0, 0.9)' : 'rgba(255, 0, 0, 0.9)'};
+                    color: white;
+                    padding: 12px 24px;
+                    border-radius: 5px;
+                    font-family: inherit;
+                    font-size: 16px;
+                    font-weight: bold;
+                    z-index: 10000;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                    transition: all 0.3s ease;
+                    pointer-events: none;
+                    animation: fadeIn 0.3s ease, fadeOut 0.3s ease 2s forwards;
+                `;
+
+                document.body.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.remove();
+                }, 2500);
+            }
+
+            toggleAudio() {
+                this.audioEnabled = !this.audioEnabled;
+                this.elements.audioBtn.textContent = this.audioEnabled ? '🔊' : '🔇';
+
+                try {
+                    localStorage.setItem('audioEnabled', this.audioEnabled);
+                    this.showToast(this.audioEnabled ? '音频已开启' : '音频已关闭', 'success');
+                } catch (e) {
+                    console.error('保存音频设置失败:', e);
+                }
+
+                // 恢复音频上下文（如果需要）
+                if (!this.audioEnabled && this.audioContext) {
+                    try {
+                        if (this.audioContext.state === 'suspended') {
+                            this.audioContext.resume();
+                        }
+                    } catch (error) {
+                        console.log('音频上下文恢复失败:', error);
+                    }
+                }
+            }
+
+            shareResults() {
+                const shareText = `我在绿色终端打字游戏中获得了 ${this.finalScore} 分！WPM: ${this.finalWpm}，准确率: ${this.finalAccuracy}%`;
+
+                if (navigator.share) {
+                    navigator.share({
+                        title: '绿色终端打字游戏',
+                        text: shareText,
+                        url: window.location.href
+                    }).catch(err => {
+                        console.log('分享失败:', err);
+                        // 降级到复制链接
+                        this.copyToClipboard(shareText + '\n' + window.location.href);
+                    });
+                } else {
+                    // 降级到复制链接
+                    this.copyToClipboard(shareText + '\n' + window.location.href);
+                }
+            }
+
+            copyToClipboard(text) {
+                try {
+                    navigator.clipboard.writeText(text).then(() => {
+                        this.showToast('链接已复制到剪贴板！', 'success');
+                    }).catch(err => {
+                        console.error('复制失败:', err);
+                    });
+                } catch (err) {
+                    // 降级到传统方法
+                    const textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    this.showToast('链接已复制！', 'success');
+                }
+            }
+
+            // ==================== 自定义词汇功能 ====================
+
+            // 打开自定义词汇模态框
+            openCustomVocabModal() {
+                this.elements.customVocabModal.classList.add('active');
+                this.loadCustomVocabFromStorage();
+                this.processVocabInput();
+            }
+
+            // 关闭自定义词汇模态框
+            closeCustomVocabModal() {
+                this.elements.customVocabModal.classList.remove('active');
+            }
+
+            // 切换Tab
+            switchTab(e) {
+                const targetTab = e.target.dataset.tab;
+
+                // 切换按钮状态
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                e.target.classList.add('active');
+
+                // 切换内容显示
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(targetTab + 'Tab').classList.add('active');
+            }
+
+            // 智能分隔符检测算法
+            detectDelimiter(text) {
+                if (!text || text.trim().length === 0) {
+                    return { delimiter: '\n', confidence: 0 };
+                }
+
+                const delimiters = [',', ' ', '\n', '、', ';', '\t', '|', '，', '；'];
+                const delimiterCounts = {};
+                let maxCount = 0;
+                let bestDelimiter = '\n';
+
+                // 统计每个分隔符的出现次数
+                delimiters.forEach(delim => {
+                    const count = (text.match(new RegExp('\\' + delim.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+                    delimiterCounts[delim] = count;
+
+                    if (count > maxCount) {
+                        maxCount = count;
+                        bestDelimiter = delim;
+                    }
+                });
+
+                // 计算置信度
+                const totalDelimiters = Object.values(delimiterCounts).reduce((sum, count) => sum + count, 0);
+                const confidence = totalDelimiters > 0 ? maxCount / totalDelimiters : 0;
+
+                return { delimiter: bestDelimiter, confidence: confidence };
+            }
+
+            // 处理词汇输入
+            processVocabInput() {
+                const text = this.elements.vocabTextarea.value.trim();
+
+                if (!text) {
+                    this.customWords = [];
+                    this.updateVocabPreview();
+                    this.elements.detectedDelimiter.textContent = '无内容';
+                    return;
+                }
+
+                // 获取选中的分隔符
+                const selectedDelimiter = document.querySelector('input[name="delimiter"]:checked').value;
+                let delimiter;
+
+                if (selectedDelimiter === 'auto') {
+                    // 自动检测
+                    const detection = this.detectDelimiter(text);
+                    delimiter = detection.delimiter;
+                    this.elements.detectedDelimiter.textContent = `${delimiter} (置信度: ${Math.round(detection.confidence * 100)}%)`;
+                } else {
+                    // 手动选择
+                    delimiter = selectedDelimiter === '\\n' ? '\n' : selectedDelimiter;
+                    this.elements.detectedDelimiter.textContent = `${delimiter} (手动选择)`;
+                }
+
+                // 分割词汇
+                let words = text.split(delimiter)
+                    .map(word => word.trim())
+                    .filter(word => word.length > 0);
+
+                // 如果分割结果不理想，尝试其他分隔符
+                if (words.length <= 1 && text.length > 10) {
+                    // 尝试多种分隔符组合
+                    const alternativeDelimiters = [/[,\s，、;；|]+/, /\s+/, /[,\s，、；;|]+/];
+
+                    for (const altDelim of alternativeDelimiters) {
+                        const altWords = text.split(altDelim)
+                            .map(word => word.trim())
+                            .filter(word => word.length > 0);
+
+                        if (altWords.length > words.length) {
+                            words = altWords;
+                            delimiter = altDelim.source || '复合分隔符';
+                            this.elements.detectedDelimiter.textContent = `${delimiter} (智能匹配)`;
+                            break;
+                        }
+                    }
+                }
+
+                // 去重并保持顺序
+                const uniqueWords = [];
+                const seenWords = new Set();
+
+                words.forEach(word => {
+                    const normalizedWord = word.toLowerCase().trim();
+                    if (!seenWords.has(normalizedWord) && normalizedWord.length > 0) {
+                        seenWords.add(normalizedWord);
+                        uniqueWords.push(word);
+                    }
+                });
+
+                this.customWords = uniqueWords;
+                this.updateVocabPreview();
+            }
+
+            // 处理文件上传
+            handleFileUpload(e) {
+                const file = e.target.files[0];
+
+                if (!file) return;
+
+                // 检查文件类型
+                const allowedTypes = ['text/plain', 'text/csv', 'text/markdown', 'application/octet-stream'];
+                const allowedExtensions = ['.txt', '.csv', '.md'];
+
+                const isValidType = allowedTypes.includes(file.type) ||
+                                  allowedExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+
+                if (!isValidType) {
+                    this.showToast('请选择支持的文件格式 (.txt, .csv, .md)', 'error');
+                    e.target.value = ''; // 清空文件选择
+                    return;
+                }
+
+                // 检查文件大小 (最大5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    this.showToast('文件过大，请选择小于5MB的文件', 'error');
+                    e.target.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+
+                reader.onload = (event) => {
+                    try {
+                        const content = event.target.result;
+                        this.elements.vocabTextarea.value = content;
+                        this.processVocabInput();
+                        this.showToast('文件上传成功！', 'success');
+
+                        // 切换到粘贴Tab以显示内容
+                        document.querySelector('[data-tab="paste"]').click();
+                    } catch (error) {
+                        console.error('文件读取失败:', error);
+                        this.showToast('文件读取失败，请重试', 'error');
+                    }
+                };
+
+                reader.onerror = () => {
+                    this.showToast('文件读取失败，请重试', 'error');
+                };
+
+                reader.readAsText(file, 'UTF-8');
+            }
+
+            // 更新词汇预览
+            updateVocabPreview() {
+                const count = this.customWords.length;
+                this.elements.vocabCount.textContent = count;
+
+                if (count === 0) {
+                    this.elements.vocabPreview.innerHTML = '<div style="opacity: 0.6; text-align: center; padding: 20px;">暂无词汇，请输入或上传文件</div>';
+                    return;
+                }
+
+                // 限制预览显示数量
+                const previewWords = this.customWords.slice(0, 100);
+                const moreCount = Math.max(0, count - 100);
+
+                const html = previewWords.map((word, index) => `
+                    <div class="vocab-item">
+                        ${word}
+                        <span class="remove-item" onclick="game.removeCustomWord(${index})">×</span>
+                    </div>
+                `).join('');
+
+                if (moreCount > 0) {
+                    this.elements.vocabPreview.innerHTML = html + `<div style="width: 100%; text-align: center; opacity: 0.6; padding: 10px;">...还有 ${moreCount} 个词汇</div>`;
+                } else {
+                    this.elements.vocabPreview.innerHTML = html;
+                }
+            }
+
+            // 移除单个词汇
+            removeCustomWord(index) {
+                this.customWords.splice(index, 1);
+                this.updateVocabTextarea();
+                this.updateVocabPreview();
+            }
+
+            // 更新文本域内容
+            updateVocabTextarea() {
+                const delimiter = this.detectDelimiter(this.elements.vocabTextarea.value).delimiter || '\n';
+                this.elements.vocabTextarea.value = this.customWords.join(delimiter === '\n' ? '\n' : delimiter + ' ');
+            }
+
+            // 随机排序词汇
+            shuffleCustomVocab() {
+                if (this.customWords.length === 0) {
+                    this.showToast('没有可排序的词汇', 'warning');
+                    return;
+                }
+
+                // Fisher-Yates 洗牌算法
+                const shuffled = [...this.customWords];
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                }
+
+                this.customWords = shuffled;
+                this.updateVocabTextarea();
+                this.updateVocabPreview();
+                this.showToast('词汇已随机排序', 'success');
+            }
+
+            // 保存自定义词汇到本地存储
+            saveCustomVocab() {
+                if (this.customWords.length === 0) {
+                    this.showToast('没有可保存的词汇', 'warning');
+                    return;
+                }
+
+                try {
+                    const vocabData = {
+                        words: this.customWords,
+                        createdAt: new Date().toISOString(),
+                        version: '1.0'
+                    };
+
+                    localStorage.setItem('customVocabulary', JSON.stringify(vocabData));
+                    this.showToast(`成功保存 ${this.customWords.length} 个词汇！`, 'success');
+                } catch (error) {
+                    console.error('保存失败:', error);
+                    this.showToast('保存失败，可能是存储空间不足', 'error');
+                }
+            }
+
+            // 从本地存储加载自定义词汇
+            loadCustomVocabFromStorage() {
+                try {
+                    const saved = localStorage.getItem('customVocabulary');
+                    if (saved) {
+                        const vocabData = JSON.parse(saved);
+                        if (vocabData.words && Array.isArray(vocabData.words)) {
+                            this.customWords = vocabData.words;
+                            this.updateVocabTextarea();
+                            this.updateVocabPreview();
+                        }
+                    }
+                } catch (error) {
+                    console.error('加载自定义词汇失败:', error);
+                }
+            }
+
+            // 清空自定义词汇
+            clearCustomVocab() {
+                if (this.customWords.length === 0) {
+                    this.showToast('没有可清空的词汇', 'warning');
+                    return;
+                }
+
+                if (confirm(`确定要清空所有 ${this.customWords.length} 个词汇吗？`)) {
+                    this.customWords = [];
+                    this.elements.vocabTextarea.value = '';
+                    this.updateVocabPreview();
+                    this.elements.detectedDelimiter.textContent = '无内容';
+
+                    // 同时清除本地存储
+                    localStorage.removeItem('customVocabulary');
+                    this.showToast('词汇已清空', 'success');
+                }
+            }
+
+            // 导出自定义词汇
+            exportCustomVocab() {
+                if (this.customWords.length === 0) {
+                    this.showToast('没有可导出的词汇', 'warning');
+                    return;
+                }
+
+                try {
+                    const content = this.customWords.join('\n');
+                    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `自定义词汇表_${new Date().toISOString().slice(0, 10)}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+
+                    // 清理URL对象
+                    setTimeout(() => URL.revokeObjectURL(url), 100);
+
+                    this.showToast(`成功导出 ${this.customWords.length} 个词汇`, 'success');
+                } catch (error) {
+                    console.error('导出失败:', error);
+                    this.showToast('导出失败，请重试', 'error');
+                }
+            }
+        }
+
+        // 添加键盘快捷键支持
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                // 防止在输入框中触发快捷键
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                    return;
+                }
+
+                // 空格键开始游戏
+                if (e.code === 'Space' && !game.isPlaying && !game.gameOver) {
+                    e.preventDefault();
+                    game.startGame();
+                    return;
+                }
+
+                // Escape键暂停/继续游戏
+                if (e.code === 'Escape' && game.isPlaying) {
+                    e.preventDefault();
+                    game.togglePause();
+                    return;
+                }
+
+                // R键重新开始
+                if (e.code === 'KeyR' && !e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    game.resetGame();
+                    return;
+                }
+
+                // L键显示排行榜
+                if (e.code === 'KeyL' && !e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    game.showLeaderboard();
+                    return;
+                }
+
+                // M键切换音频
+                if (e.code === 'KeyM' && !e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    game.toggleAudio();
+                    return;
+                }
+
+                // H键显示帮助
+                if (e.code === 'KeyH' && !e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    game.showHelp();
+                    return;
+                }
+
+                // 数字键1-4切换难度
+                if (e.code >= 'Digit1' && e.code <= 'Digit4' && !e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    const difficultyIndex = parseInt(e.code.slice(-1)) - 1;
+                    const difficulties = ['easy', 'medium', 'hard', 'extreme'];
+                    if (difficulties[difficultyIndex]) {
+                        game.setDifficulty(difficulties[difficultyIndex]);
+                    }
+                    return;
+                }
+
+                // C键切换语言
+                if (e.code === 'KeyC' && !e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    game.toggleLanguage();
+                    return;
+                }
+            });
+
+            // Ctrl/Cmd + Enter 在输入框中快速开始游戏
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.code === 'Enter' && !game.isPlaying) {
+                    e.preventDefault();
+                    game.startGame();
+                }
+            });
+        }
+
+        // 添加全屏支持
+        function setupFullscreen() {
+            const fullscreenBtn = document.createElement('button');
+            fullscreenBtn.innerHTML = '⛶';
+            fullscreenBtn.className = 'fullscreen-btn';
+            fullscreenBtn.title = '全屏模式 (F)';
+            fullscreenBtn.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: rgba(0, 255, 0, 0.1);
+                border: 2px solid #00ff00;
+                color: #00ff00;
+                padding: 10px;
+                cursor: pointer;
+                border-radius: 5px;
+                font-size: 18px;
+                z-index: 1000;
+                transition: all 0.3s ease;
+            `;
+
+            fullscreenBtn.addEventListener('mouseenter', () => {
+                fullscreenBtn.style.backgroundColor = 'rgba(0, 255, 0, 0.3)';
+                fullscreenBtn.style.boxShadow = '0 0 15px rgba(0, 255, 0, 0.6)';
+            });
+
+            fullscreenBtn.addEventListener('mouseleave', () => {
+                fullscreenBtn.style.backgroundColor = 'rgba(0, 255, 0, 0.1)';
+                fullscreenBtn.style.boxShadow = 'none';
+            });
+
+            fullscreenBtn.addEventListener('click', () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.error('无法进入全屏模式:', err);
+                    });
+                } else {
+                    document.exitFullscreen();
+                }
+            });
+
+            // F键切换全屏
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'KeyF' && !e.ctrlKey && !e.metaKey && e.target.tagName !== 'INPUT') {
+                    e.preventDefault();
+                    fullscreenBtn.click();
+                }
+            });
+
+            document.body.appendChild(fullscreenBtn);
+        }
+
+        // 添加页面可见性API支持
+        function setupVisibilityAPI() {
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    // 页面隐藏时暂停游戏
+                    if (game.isPlaying && !game.isPaused) {
+                        game.pauseGame();
+                    }
+                }
+            });
+        }
+
+        // 添加在线/离线状态检测
+        function setupOnlineStatus() {
+            function updateOnlineStatus() {
+                const indicator = document.createElement('div');
+                indicator.id = 'online-status';
+                indicator.style.cssText = `
+                    position: fixed;
+                    bottom: 20px;
+                    left: 20px;
+                    padding: 8px 12px;
+                    border-radius: 3px;
+                    font-size: 12px;
+                    font-weight: bold;
+                    z-index: 1000;
+                    transition: all 0.3s ease;
+                    ${navigator.onLine ?
+                        'background: rgba(0, 255, 0, 0.2); color: #00ff00; border: 1px solid #00ff00;' :
+                        'background: rgba(255, 0, 0, 0.2); color: #ff0000; border: 1px solid #ff0000;'
+                    }
+                `;
+                indicator.textContent = navigator.onLine ? '🌐 在线' : '📴 离线';
+
+                // 移除旧的指示器
+                const oldIndicator = document.getElementById('online-status');
+                if (oldIndicator) {
+                    oldIndicator.remove();
+                }
+
+                document.body.appendChild(indicator);
+
+                // 3秒后自动隐藏
+                setTimeout(() => {
+                    if (indicator && indicator.parentNode) {
+                        indicator.style.opacity = '0';
+                        setTimeout(() => {
+                            if (indicator.parentNode) {
+                                indicator.remove();
+                            }
+                        }, 300);
+                    }
+                }, 3000);
+            }
+
+            window.addEventListener('online', updateOnlineStatus);
+            window.addEventListener('offline', updateOnlineStatus);
+
+            // 页面加载时显示一次状态
+            setTimeout(updateOnlineStatus, 1000);
+        }
+
+        // 添加Service Worker注册（用于PWA支持）
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('Service Worker注册成功:', registration);
+                    })
+                    .catch(error => {
+                        console.log('Service Worker注册失败:', error);
+                    });
+            }
+        }
+
+        // 添加性能监控
+        function setupPerformanceMonitoring() {
+            // 监控游戏性能
+            let frameCount = 0;
+            let lastTime = performance.now();
+
+            function measureFPS() {
+                frameCount++;
+                const currentTime = performance.now();
+
+                if (currentTime >= lastTime + 1000) {
+                    const fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
+
+                    // 如果FPS过低，在控制台警告
+                    if (fps < 30) {
+                        console.warn(`游戏性能较低: ${fps} FPS`);
+                    }
+
+                    frameCount = 0;
+                    lastTime = currentTime;
+                }
+
+                requestAnimationFrame(measureFPS);
+            }
+
+            // 启动FPS监控
+            requestAnimationFrame(measureFPS);
+        }
+
+        // 错误处理和报告
+        function setupErrorHandling() {
+            window.addEventListener('error', (event) => {
+                console.error('游戏运行错误:', event.error);
+
+                // 在开发环境中显示错误提示
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    game.showToast('发生错误，请查看控制台', 'error');
+                }
+            });
+
+            window.addEventListener('unhandledrejection', (event) => {
+                console.error('未处理的Promise错误:', event.reason);
+                event.preventDefault();
+            });
+        }
+
+        // 扩展游戏类功能
+        Object.assign(TypingGame.prototype, {
+            // 显示帮助信息
+            showHelp() {
+                const helpContent = `
+🎮 键盘快捷键：
+
+空格键 - 开始游戏
+Esc - 暂停/继续
+R - 重新开始
+L - 排行榜
+M - 音频开关
+H - 显示帮助
+F - 全屏模式
+1-4 - 切换难度
+C - 切换语言
+Ctrl+Enter - 快速开始
+
+📊 统计信息：
+WPM - 每分钟字数
+准确率 - 输入正确率
+得分 - 根据难度计算
+
+💡 提示：
+• 绿色字符表示正确
+• 红色字符表示错误
+• 灰色字符表示待输入
+                `;
+
+                alert(helpContent);
+            },
+
+            // 暂停/继续游戏
+            togglePause() {
+                if (this.isPaused) {
+                    this.resumeGame();
+                } else {
+                    this.pauseGame();
+                }
+            },
+
+            pauseGame() {
+                if (!this.isPlaying || this.isPaused) return;
+
+                this.isPaused = true;
+                this.showToast('游戏已暂停', 'success');
+            },
+
+            resumeGame() {
+                if (!this.isPlaying || !this.isPaused) return;
+
+                this.isPaused = false;
+                this.showToast('游戏继续', 'success');
+                this.elements.textInput.focus();
+            },
+
+            // 设置难度
+            setDifficulty(difficulty) {
+                if (this.isPlaying) return;
+
+                this.currentDifficulty = difficulty;
+
+                // 更新UI
+                document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                const activeBtn = document.querySelector(`[data-difficulty="${difficulty}"]`);
+                if (activeBtn) {
+                    activeBtn.classList.add('active');
+                }
+
+                const difficultyNames = {
+                    easy: '小学四年级',
+                    medium: '小学五六年级',
+                    hard: '初中一、二年级',
+                    extreme: '初中三年级到高中',
+                    university: '大学阶段',
+                    graduate: '研究生阶段'
+                };
+
+                this.showToast(`难度: ${difficultyNames[difficulty]}`, 'success');
+            },
+
+            // 切换语言
+            toggleLanguage() {
+                if (this.isPlaying) return;
+
+                const newLanguage = this.currentLanguage === 'chinese' ? 'english' : 'chinese';
+                this.setLanguage(newLanguage);
+            },
+
+            // 语言设置
+            setLanguage(language) {
+                this.currentLanguage = language;
+
+                // 更新UI
+                document.querySelectorAll('.language-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                const activeBtn = document.querySelector(`[data-language="${language}"]`);
+                if (activeBtn) {
+                    activeBtn.classList.add('active');
+                }
+
+                this.showToast(language === 'chinese' ? '中文模式' : 'English Mode', 'success');
+            }
+        });
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化游戏
+            const game = new TypingGame();
+            game.bindEvents();  // 绑定事件监听器
+
+            // 设置各种功能
+            setupKeyboardShortcuts();
+            setupFullscreen();
+            setupVisibilityAPI();
+            setupOnlineStatus();
+            setupPerformanceMonitoring();
+            setupErrorHandling();
+
+            // 尝试注册Service Worker
+            registerServiceWorker();
+
+            // 显示欢迎信息
+            setTimeout(() => {
+                game.showToast('欢迎！按空格键开始游戏，H键查看帮助', 'success');
+            }, 1000);
+
+            // 全局暴露游戏实例，便于调试
+            window.game = game;
+        });
+    </script>
+</body>
+</html>

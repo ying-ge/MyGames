@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(open:*)"
+      "Bash(open:*)",
+      "Bash(python3 icon.png)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []
