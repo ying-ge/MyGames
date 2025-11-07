@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="贪吃蛇游戏 - 经典小游戏">
-    <title>贪吃蛇游戏</title>
+    <meta name="description" content="我要画图——吃图补图 - 经典小游戏">
+    <title>我要画图——吃图补图</title>
     <style>
         * {
             margin: 0;
@@ -84,6 +84,8 @@
             background: #fff;
             display: block;
             margin: 0 auto 20px;
+            max-width: 100%;
+            height: auto;
         }
 
         .controls {
@@ -232,15 +234,15 @@
                 gap: 15px;
             }
             
-            #gameCanvas {
-                max-width: 100%;
+            .game-container {
+                padding: 15px;
             }
         }
     </style>
 </head>
 <body>
     <header>
-        <h1>🐍 贪吃蛇游戏 🐍</h1>
+        <h1>🐍 我要画图——吃图补图 🐍</h1>
     </header>
 
     <div class="game-container">
@@ -280,7 +282,7 @@
             </div>
         </div>
 
-        <canvas id="gameCanvas" width="600" height="600"></canvas>
+        <canvas id="gameCanvas"></canvas>
 
         <div class="controls">
             <button id="startBtn">开始游戏</button>
@@ -316,8 +318,30 @@
         
         // 游戏配置
         const CELL_SIZE = 30;
-        const GRID_WIDTH = canvas.width / CELL_SIZE;
-        const GRID_HEIGHT = canvas.height / CELL_SIZE;
+        let GRID_WIDTH = 20;
+        let GRID_HEIGHT = 20;
+        
+        // 初始化canvas尺寸
+        function resizeCanvas() {
+            const container = document.querySelector('.game-container');
+            const maxWidth = Math.min(window.innerWidth - 80, 600);
+            const maxHeight = Math.min(window.innerHeight - 400, 600);
+            const size = Math.min(maxWidth, maxHeight);
+            
+            GRID_WIDTH = Math.floor(size / CELL_SIZE);
+            GRID_HEIGHT = Math.floor(size / CELL_SIZE);
+            
+            canvas.width = GRID_WIDTH * CELL_SIZE;
+            canvas.height = GRID_HEIGHT * CELL_SIZE;
+        }
+        
+        resizeCanvas();
+        window.addEventListener('resize', () => {
+            if (!gameInterval) {
+                resizeCanvas();
+                draw();
+            }
+        });
         
         // 游戏状态
         let snake = [];

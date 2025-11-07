@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="description" content="绿色终端打字游戏 - 90年代复古风格的打字练习游戏">
+    <meta name="description" content="论文如泉涌 - 90年代复古风格的打字练习游戏">
     <meta name="keywords" content="打字游戏,绿色终端,复古,typing,练习,中文打字,英文打字">
-    <title>绿色终端打字游戏</title>
+    <title>论文如泉涌</title>
 
     <!-- Open Graph / Social Media -->
-    <meta property="og:title" content="绿色终端打字游戏">
+    <meta property="og:title" content="论文如泉涌">
     <meta property="og:description" content="体验90年代绿色终端风格的打字练习游戏！">
     <meta property="og:type" content="website">
     <meta property="og:image" content="./assets/icon.png">
@@ -86,7 +86,7 @@
             margin: 20px;
             padding: 20px;
             flex: 1;
-            max-width: 1200px;
+            max-width: min(95vw, 1200px);
             width: calc(100% - 40px);
             position: relative;
         }
@@ -418,6 +418,7 @@
                 margin: 10px;
                 padding: 15px;
                 border-radius: 5px;
+                width: calc(100% - 20px);
             }
 
             .title {
@@ -451,6 +452,7 @@
             .terminal {
                 margin: 5px;
                 padding: 10px;
+                width: calc(100% - 10px);
             }
 
             .title {
@@ -944,7 +946,7 @@
 <body>
     <div class="terminal">
         <header class="header">
-            <h1 class="title">DOS时代打字</h1>
+            <h1 class="title">论文如泉涌</h1>
             <div class="subtitle">SYSTEM READY...</div>
         </header>
 
@@ -2150,11 +2152,11 @@
             }
 
             shareResults() {
-                const shareText = `我在绿色终端打字游戏中获得了 ${this.finalScore} 分！WPM: ${this.finalWpm}，准确率: ${this.finalAccuracy}%`;
+                const shareText = `我在论文如泉涌中获得了 ${this.finalScore} 分！WPM: ${this.finalWpm}，准确率: ${this.finalAccuracy}%`;
 
                 if (navigator.share) {
                     navigator.share({
-                        title: '绿色终端打字游戏',
+                        title: '论文如泉涌',
                         text: shareText,
                         url: window.location.href
                     }).catch(err => {

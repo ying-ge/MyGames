@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="连连看消除游戏">
-    <title>连连看消除游戏</title>
+    <meta name="description" content="我要思路——连上就有">
+    <title>我要思路——连上就有</title>
     <style>
         * {
             margin: 0;
@@ -113,13 +113,14 @@
         .game-board {
             display: grid;
             gap: 6px;
-            max-width: 800px;
+            max-width: min(90vw, 800px);
             margin: 0 auto;
+            justify-content: center;
         }
 
         .tile {
-            width: 80px;
-            height: 80px;
+            width: clamp(50px, 8vw, 80px);
+            height: clamp(50px, 8vw, 80px);
             border: 2px solid #ddd;
             border-radius: 8px;
             cursor: pointer;
@@ -133,9 +134,8 @@
         }
 
         @media (max-width: 768px) {
-            .tile {
-                width: 60px;
-                height: 60px;
+            .game-board {
+                gap: 4px;
             }
         }
 
@@ -295,7 +295,7 @@
 </head>
 <body>
     <header>
-        <h1>🎮 连连看消除游戏</h1>
+        <h1>🎮 我要思路——连上就有</h1>
         <p>找出相同的图片，用最多3条直线连接它们！</p>
     </header>
 
@@ -998,7 +998,7 @@
                     return false;
                 }
 
-                // 实现真正的连连看规则：最多用3条直线（2个转折点）连接
+                // 实现真正的我要思路——连上就有规则：最多用3条直线（2个转折点）连接
                 const result = this.findPath(row1, col1, row2, col2);
 
                 return result;
