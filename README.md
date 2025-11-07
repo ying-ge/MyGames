@@ -80,9 +80,11 @@ FigureYa-Games/
 - 入口：`game_linkup/index.html`
 - 备注：当前子目录文档较少（`README.md` 仅占位），欢迎补充玩法说明、规则与关卡设计
 
-配图预览：
+点击图直达游戏页面：
 
-<img src="png_compressed/game_linkup.webp" alt="我要思路——连上就有" width="520" />
+<a href="https://ying-ge.github.io/FigureYa-Games/game_linkup/" target="_blank">
+  <img src="png_compressed/game_linkup.webp" alt="我要思路——连上就有" width="520" />
+</a>
 
 ---
 
@@ -99,9 +101,11 @@ FigureYa-Games/
 - 文档：详见 `game_snake/README.md`
 - 入口：`game_snake/index.html`
 
-配图预览：
+点击图直达游戏页面：
 
-<img src="png_compressed/game_snake.webp" alt="我要画图——吃图补图" width="520" />
+<a href="https://ying-ge.github.io/FigureYa-Games/game_snake/" target="_blank">
+  <img src="png_compressed/game_snake.webp" alt="我要画图——吃图补图" width="520" />
+</a>
 
 ---
 
@@ -117,9 +121,11 @@ FigureYa-Games/
 - 文档：详见 `game_typing/README.md` 与 `game_typing/PROJECT_SUMMARY.md`
 - 入口：`game_typing/index.html`
 
-配图预览：
+点击图直达游戏页面：
 
-<img src="png_compressed/game_typing.webp" alt="论文如泉涌" width="520" />
+<a href="https://ying-ge.github.io/FigureYa-Games/game_typing/" target="_blank">
+  <img src="png_compressed/game_typing.webp" alt="论文如泉涌" width="520" />
+</a>
 
 
 ## 引用
