@@ -157,6 +157,57 @@
             background: white;
         }
 
+        .setting-group input[type="range"] {
+            width: 200px;
+            height: 8px;
+            border-radius: 5px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .setting-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+        }
+
+        .setting-group input[type="range"]::-webkit-slider-thumb:hover {
+            background: #764ba2;
+            transform: scale(1.1);
+        }
+
+        .setting-group input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+        }
+
+        .setting-group input[type="range"]::-moz-range-thumb:hover {
+            background: #764ba2;
+            transform: scale(1.1);
+        }
+
+        .slider-value {
+            min-width: 40px;
+            text-align: center;
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
         .instructions {
             margin-top: 20px;
             padding: 20px;
@@ -273,12 +324,9 @@
             </div>
             <div class="setting-group">
                 <label for="foodCount">食物数量：</label>
-                <select id="foodCount">
-                    <option value="1" selected>1个</option>
-                    <option value="2">2个</option>
-                    <option value="3">3个</option>
-                    <option value="5">5个</option>
-                </select>
+                <input type="range" id="foodCount" min="1" max="20" value="1" step="1">
+                <span class="slider-value" id="foodCountValue">1</span>
+                <span>个</span>
             </div>
         </div>
 
@@ -419,6 +467,13 @@
             generateFoods();
             updateDisplay();
             document.getElementById('gameOverOverlay').style.display = 'none';
+        }
+        
+        // 更新滑块显示值
+        function updateFoodCountDisplay() {
+            const slider = document.getElementById('foodCount');
+            const valueDisplay = document.getElementById('foodCountValue');
+            valueDisplay.textContent = slider.value;
         }
         
         // 生成食物
@@ -697,8 +752,12 @@
         document.getElementById('pauseBtn').addEventListener('click', togglePause);
         document.getElementById('restartBtn').addEventListener('click', restartGame);
         
+        // 滑块事件
+        document.getElementById('foodCount').addEventListener('input', updateFoodCountDisplay);
+        
         // 初始化显示
         updateDisplay();
+        updateFoodCountDisplay();
         draw();
     </script>
 </body>
