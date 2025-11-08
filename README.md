@@ -3,9 +3,13 @@
 一个轻量的网页游戏合集，主打"学术 × 娱乐"的学习型小游戏。目前包含：
 
 - **Peer Review Defense**（塔防/策略）
+- **实验室嘉年华**（派对竞技/多人AI）
+- **科研马里奥要发CNS**（平台动作）
+- **FigureYa带你飞**（追逐挑战）
 - **我要思路——连上就有**（基于 FigureYa 缩略图的消除类小游戏）
 - **论文如泉涌**（采用 FigureYa 关键词词库；中英文、教育年级分级、PWA 支持）
 - **我要画图——吃图补图**（经典贪吃蛇游戏，使用 FigureYa 图片作为食物素材，支持多难度和多食物数量设置）
+- **巧手拼图**（FigureYa 素材的俄罗斯方块）
 
 你可以直接在浏览器本地打开，或部署到 GitHub Pages 在线游玩。
 
@@ -15,18 +19,27 @@
 - 根目录主页（游戏合集）：`index.html`
 - 子项目入口：
   - Peer Review Defense：`game_peerreview/index.html`
+  - 实验室嘉年华：`game_eggparty/index.html`
+  - 科研马里奥要发CNS：`game_mario/index.html`
+  - FigureYa带你飞：`game_catmouse/index.html`
   - 我要思路——连上就有：`game_linkup/index.html`
   - 论文如泉涌：`game_typing/index.html`
   - 我要画图——吃图补图：`game_snake/index.html`
+  - 巧手拼图：`game_tetris/index.html`
 
-在线地址（已部署）：
+- 在线地址（GitHub Pages 已部署）：
 
-- 合集首页：https://ying-ge.github.io/FigureYa-Games/
-- 我要思路——连上就有：https://ying-ge.github.io/FigureYa-Games/game_linkup/
-- 论文如泉涌：https://ying-ge.github.io/FigureYa-Games/game_typing/
-- 我要画图——吃图补图：https://ying-ge.github.io/FigureYa-Games/game_snake/
-- Peer Review Defense：`game_peerreview/index.html`
-
+| 游戏 | 访问链接 |
+| --- | --- |
+| 合集首页 | https://ying-ge.github.io/FigureYa-Games/ |
+| Peer Review Defense | https://ying-ge.github.io/FigureYa-Games/game_peerreview/ |
+| 实验室嘉年华 | https://ying-ge.github.io/FigureYa-Games/game_eggparty/ |
+| 科研马里奥要发CNS | https://ying-ge.github.io/FigureYa-Games/game_mario/ |
+| FigureYa带你飞 | https://ying-ge.github.io/FigureYa-Games/game_catmouse/ |
+| 我要思路——连上就有 | https://ying-ge.github.io/FigureYa-Games/game_linkup/ |
+| 论文如泉涌 | https://ying-ge.github.io/FigureYa-Games/game_typing/ |
+| 我要画图——吃图补图 | https://ying-ge.github.io/FigureYa-Games/game_snake/ |
+| 巧手拼图 | https://ying-ge.github.io/FigureYa-Games/game_tetris/ |
 
 ## 快速开始（本地）
 
@@ -55,6 +68,12 @@ FigureYa-Games/
 ├── game_peerreview/           # Peer Review Defense
 │   ├── index.html
 │   └── README.md
+├── game_eggparty/             # 实验室嘉年华
+│   └── index.html
+├── game_mario/                # 科研马里奥要发CNS
+│   └── index.html
+├── game_catmouse/             # FigureYa带你飞
+│   └── index.html
 ├── game_linkup/               # 我要思路——连上就有
 │   ├── index.html
 │   └── README.md
@@ -73,6 +92,8 @@ FigureYa-Games/
 │   ├── robots.txt
 │   ├── sitemap.xml
 │   └── sw.js
+├── game_tetris/               # 巧手拼图
+│   └── index.html
 ├── png/                       # 资源原图
 └── png_compressed/            # 站点使用的压缩图（webp等）
 ```
@@ -130,6 +151,42 @@ FigureYa-Games/
 ---
 
 ### 论文如泉涌（`game_typing/`）
+
+---
+
+### 实验室嘉年华（`game_eggparty/`）
+
+- 特色：
+  - 派对对抗玩法，90 秒冲刺高分
+  - FigureYa 图稿争夺、多人 AI 对手
+- 入口：`game_eggparty/index.html`
+
+---
+
+### 科研马里奥要发CNS（`game_mario/`）
+
+- 特色：
+  - 平台跳跃玩法，融合科研主题
+  - 经典马里奥式关卡与 FigureYa 元素
+- 入口：`game_mario/index.html`
+
+---
+
+### FigureYa带你飞（`game_catmouse/`）
+
+- 特色：
+  - 追逐挑战，躲避障碍、收集加速
+  - 多种 FigureYa 图像作为场景元素
+- 入口：`game_catmouse/index.html`
+
+---
+
+### 巧手拼图（`game_tetris/`）
+
+- 特色：
+  - 经典俄罗斯方块玩法 + FigureYa 方块素材
+  - 连续消行、连击得分系统
+- 入口：`game_tetris/index.html`
 
 - 特色：
   - 词汇来源：大学与研究生阶段词汇采用 FigureYa 关键词（见下文"引用"）

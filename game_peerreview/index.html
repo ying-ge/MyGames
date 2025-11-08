@@ -560,6 +560,7 @@
             projectiles = [];
             slows = [];
             tokens = [];
+            rowTowerSets = Array.from({ length: GRID_ROWS }, () => new Set());
             funds = 120;
             impactFactor = 2.5;
             hp = 3;
@@ -1080,7 +1081,12 @@
 
         function triggerGameOver(success) {
             running = false;
-            endTitle.textContent = success ? '成功发表！' : '被拒绝，需要大修';
+            endTitle.textContent = success ? '成功发表！' : '被拒稿，需要大修';
+            if (success) {
+                const baseline = currentDifficulty === 'hard' ? 58 : 42;
+                impactFactor = Math.max(impactFactor, baseline);
+                updateHUD();
+            }
             endSummary.textContent = `最终影响因子 ${impactFactor.toFixed(1)}，守住 ${wave} / ${MAX_WAVES} 波。`;
             endPopup.style.display = 'flex';
         }
