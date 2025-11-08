@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peer Review Defense</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Product+Sans:wght@400;500;700&family=Roboto+Mono:wght@500&display=swap');
+
+        :root {
+            color-scheme: light dark;
+            --bg-gradient: radial-gradient(circle at top, #eef3ff 0%, #f5f7ff 40%, #e6e9ff 100%);
+            --panel-bg: rgba(255, 255, 255, 0.82);
+            --panel-border: rgba(215, 222, 255, 0.9);
+            --primary: #4058f6;
+            --primary-dark: #2737bd;
+            --secondary: #6c81ff;
+            --text-main: #1d2358;
+            --text-subtle: #4d547a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Product Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: clamp(16px, 3vw, 40px);
+        }
+
+        .app {
+            width: min(1080px, 100%);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            background: var(--panel-bg);
+            border-radius: 28px;
+            border: 1px solid var(--panel-border);
+            box-shadow: 0 25px 60px rgba(64, 78, 156, 0.2);
+            padding: clamp(20px, 4vw, 32px);
+            backdrop-filter: blur(16px);
+        }
+
+        header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+        }
+
+        .title-block {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        h1 {
+            font-size: clamp(26px, 4vw, 36px);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h1 span {
+            font-size: 32px;
+        }
+
+        .subtitle {
+            font-size: clamp(14px, 2vw, 16px);
+            color: var(--text-subtle);
+            line-height: 1.6;
+            max-width: 520px;
+        }
+
+        .scoreboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 14px;
+        }
+
+        .score-card {
+            background: linear-gradient(135deg, rgba(81, 110, 255, 0.12), rgba(163, 185, 255, 0.18));
+            border: 1px solid rgba(110, 130, 255, 0.28);
+            border-radius: 18px;
+            padding: 14px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .score-card .label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--secondary);
+        }
+
+        .score-card .value {
+            font-size: 26px;
+            font-weight: 600;
+            color: var(--primary-dark);
+        }
+
+        .difficulty-selector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .difficulty-options {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        .difficulty-label {
+            font-size: 14px;
+            color: var(--text-subtle);
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .difficulty-button {
+            border: 1px solid rgba(102, 122, 255, 0.4);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary-dark);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .difficulty-button:hover {
+            border-color: var(--primary);
+            box-shadow: 0 8px 18px rgba(64, 88, 246, 0.2);
+        }
+
+        .difficulty-button.active {
+            background: linear-gradient(135deg, #4c6ef5 0%, #5f7bff 100%);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 10px 24px rgba(76, 110, 245, 0.35);
+        }
+
+        .control-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .tower-button {
+            border: 1px solid rgba(118, 134, 255, 0.4);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.72);
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            min-width: 150px;
+        }
+
+        .tower-button:hover,
+        .tower-button.selected {
+            transform: translateY(-2px);
+            border-color: var(--primary);
+            box-shadow: 0 12px 25px rgba(64, 88, 246, 0.2);
+        }
+
+        .tower-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .tower-desc {
+            font-size: 13px;
+            color: var(--text-subtle);
+            line-height: 1.4;
+        }
+
+        .tower-cost {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 13px;
+            color: var(--primary-dark);
+        }
+
+        .battlefield {
+            position: relative;
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid rgba(150, 166, 255, 0.45);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+            background: linear-gradient(180deg, rgba(214, 224, 255, 0.4), rgba(162, 178, 255, 0.32));
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .hint-bar {
+            background: rgba(255, 255, 255, 0.78);
+            border-radius: 16px;
+            padding: 14px 18px;
+            border: 1px dashed rgba(118, 134, 255, 0.5);
+            font-size: clamp(13px, 2vw, 14px);
+            color: var(--text-subtle);
+            line-height: 1.6;
+        }
+
+        .popup {
+            position: absolute;
+            inset: 0;
+            background: rgba(13, 18, 48, 0.78);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            color: white;
+            text-align: center;
+            padding: 32px;
+        }
+
+        .popup h2 {
+            font-size: clamp(30px, 6vw, 42px);
+            font-weight: 600;
+        }
+
+        .popup p {
+            font-size: clamp(16px, 3vw, 18px);
+            line-height: 1.7;
+            max-width: 460px;
+            color: rgba(255, 255, 255, 0.88);
+        }
+
+        .primary-button {
+            background: linear-gradient(135deg, #4d65ff 0%, #5c74ff 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 30px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 14px 32px rgba(77, 101, 255, 0.32);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .primary-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 36px rgba(77, 101, 255, 0.4);
+        }
+
+        .secondary-button {
+            background: rgba(255, 255, 255, 0.12);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 10px 24px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .secondary-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        @media (max-width: 900px) {
+            .app {
+                border-radius: 20px;
+                padding: 20px;
+            }
+
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .control-panel {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .tower-button {
+                width: 100%;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header>
+            <div class="title-block">
+                <h1><span>🛡️</span>Peer Review Defense</h1>
+                <p class="subtitle">
+                    布置你的实验数据、防御图表与引用壁垒，化解审稿人与编辑投来的严苛“质疑弹”。
+                    成功撑过所有波次，影响因子将飙升！
+                </p>
+            </div>
+            <button class="primary-button" id="restartBtn">重新投稿</button>
+        </header>
+
+        <section class="scoreboard">
+            <div class="score-card">
+                <span class="label">Impact Factor</span>
+                <span class="value" id="ifValue">2.5</span>
+            </div>
+            <div class="score-card">
+                <span class="label">Funding</span>
+                <span class="value" id="fundValue">120</span>
+            </div>
+            <div class="score-card">
+                <span class="label">Wave</span>
+                <span class="value" id="waveValue">1 / 12</span>
+            </div>
+            <div class="score-card">
+                <span class="label">Integrity</span>
+                <span class="value" id="hpValue">3</span>
+            </div>
+        </section>
+
+        <section class="control-panel" id="towerPanel">
+            <!-- 动态生成塔按钮 -->
+        </section>
+
+        <section class="battlefield">
+            <canvas id="battleCanvas" width="900" height="500"></canvas>
+            <div class="popup" id="startPopup">
+                <h2>准备投稿</h2>
+                <div class="difficulty-selector" id="difficultySelector">
+                    <span class="difficulty-label">选择难度</span>
+                    <div class="difficulty-options">
+                        <button class="difficulty-button active" data-difficulty="easy">基础</button>
+                        <button class="difficulty-button" data-difficulty="hard">专业</button>
+                    </div>
+                </div>
+                <p>
+                    布置证据防线化解 Reviewer / Editor，随手拾取 FigureYa 图表补 Funding，撑过 12 波即完成投稿！
+                </p>
+                <button class="primary-button" id="startBtn">开始投稿</button>
+                <button class="secondary-button" id="tutorialBtn">简要策略</button>
+            </div>
+            <div class="popup" id="endPopup" style="display:none;">
+                <h2 id="endTitle">投稿结果</h2>
+                <p id="endSummary">最终影响因子 0.0，守住 0 波。</p>
+                <button class="primary-button" id="retryBtn">重新投稿</button>
+            </div>
+        </section>
+
+        <section class="hint-bar" id="hintBar">
+            提示：及时拾取 FigureYa 图表（阳光）补充 Funding 与影响因子。
+            记得组合使用减速与输出证据，守住整篇论文！
+        </section>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('battleCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const ifValueEl = document.getElementById('ifValue');
+        const fundValueEl = document.getElementById('fundValue');
+        const waveValueEl = document.getElementById('waveValue');
+        const hpValueEl = document.getElementById('hpValue');
+        const hintBar = document.getElementById('hintBar');
+        const towerPanel = document.getElementById('towerPanel');
+        const difficultySelector = document.getElementById('difficultySelector');
+        const difficultyButtons = Array.from(document.querySelectorAll('.difficulty-button'));
+
+        const startPopup = document.getElementById('startPopup');
+        const endPopup = document.getElementById('endPopup');
+        const endTitle = document.getElementById('endTitle');
+        const endSummary = document.getElementById('endSummary');
+
+        const startBtn = document.getElementById('startBtn');
+        const tutorialBtn = document.getElementById('tutorialBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const retryBtn = document.getElementById('retryBtn');
+
+        const GRID_COLS = 9;
+        const GRID_ROWS = 5;
+        const CELL_WIDTH = canvas.width / GRID_COLS;
+        const CELL_HEIGHT = canvas.height / GRID_ROWS;
+        const MAX_WAVES = 12;
+        const TOKEN_FALL_SPEED = 90;
+        const TOKEN_LIFETIME = 3;
+        const TOKEN_SPAWN_INTERVAL = 7;
+        const TOKEN_FUND_REWARD = 15;
+        const TOKEN_COLLECT_RADIUS = 28;
+        const INITIAL_TOKEN_BURST_COUNT = 10;
+        const INITIAL_TOKEN_BURST_DURATION = 2;
+        const ENEMY_ATTACK_INTERVAL = 2.2;
+        const REVIEWER_ATTACK_DAMAGE = 35;
+        const EDITOR_ATTACK_GROWTH = 8;
+
+        const DAMAGE_RATIO = 0.2;
+        const TOWER_TYPES = [
+            {
+                id: 'data',
+                label: 'Data',
+                cost: 60,
+                energy: 60,
+                damage: 60 * DAMAGE_RATIO,
+                fireRate: 1.0,
+                range: CELL_WIDTH * 3,
+                color: '#4c6ef5',
+                desc: '标准输出，射程均衡，稳定削弱 Reviewer / Editor。',
+            },
+            {
+                id: 'figure',
+                label: 'Figure',
+                cost: 60,
+                energy: 60,
+                damage: 60 * DAMAGE_RATIO,
+                fireRate: 0.75,
+                range: CELL_WIDTH * 2.6,
+                color: '#845ef7',
+                desc: '射速更快的近程火力，适合前排防守。',
+            },
+            {
+                id: 'novelty',
+                label: 'Novelty',
+                cost: 90,
+                energy: 90,
+                damage: 90 * DAMAGE_RATIO,
+                fireRate: 1.6,
+                range: CELL_WIDTH * 4.2,
+                color: '#ff6b6b',
+                desc: '高影响新颖度，远距离重创 Reviewer / Editor 干扰。',
+            },
+            {
+                id: 'mechanism',
+                label: 'Mechanism',
+                cost: 90,
+                energy: 90,
+                damage: 90 * DAMAGE_RATIO,
+                fireRate: 1.2,
+                range: CELL_WIDTH * 3.6,
+                color: '#ffa94d',
+                desc: '严密机理驱动，持续高效剖析 Reviewer / Editor 弱点。',
+            },
+            {
+                id: 'clinical',
+                label: 'Clinical',
+                cost: 120,
+                energy: 120,
+                damage: 0,
+                fireRate: 0,
+                range: 0,
+                slowFactor: 0.45,
+                slowDuration: 2.5,
+                color: '#2ec4b6',
+                desc: '临床佐证调节区，平衡 Reviewer / Editor 推进。',
+            },
+            {
+                id: 'ai',
+                label: 'AI',
+                cost: 180,
+                energy: 180,
+                damage: 180 * (DAMAGE_RATIO * 0.35),
+                fireRate: 2.4,
+                range: CELL_WIDTH * 3.6,
+                color: '#1aa6b7',
+                globalTarget: true,
+                desc: '全局侦察补刀塔，需配合其他证据输出。',
+            }
+        ];
+
+        const ENEMY_BASE_HP = 60;
+        const ENEMY_HP_GROWTH = 12;
+        const ENEMY_SPEED_BASE = 35;
+        const ENEMY_SPEED_GROWTH = 4;
+
+        const TOKEN_IMAGES = Array.from({ length: 15 }, (_, idx) => `./gallery_compress/snake_${idx + 1}.webp`).map(src => {
+            const img = new Image();
+            img.src = src;
+            return img;
+        });
+
+        const DIFFICULTIES = {
+            easy: { label: '基础', editorMultiplier: 1, tokenIntervalScale: 1 },
+            hard: { label: '专业', editorMultiplier: 2, tokenIntervalScale: 1 / 1.2 }
+        };
+
+        let towers = [];
+        let enemies = [];
+        let projectiles = [];
+        let slows = [];
+        let tokens = [];
+        let rowTowerSets = Array.from({ length: GRID_ROWS }, () => new Set());
+
+        let funds = 120;
+        let impactFactor = 2.5;
+        let hp = 3;
+        let wave = 1;
+        let enemiesToSpawn = 0;
+        let timeSinceLastSpawn = 0;
+        let spawnInterval = 2.5;
+        let tokenTimer = 0;
+        let gameTime = 0;
+        let initialTokenSpawned = 0;
+        let currentDifficulty = 'easy';
+        let running = false;
+        let lastTimestamp = 0;
+        let selectedTower = null;
+        let hoverCell = null;
+        let hintIndex = 0;
+
+        const hints = [
+            '提示：引用壁垒可以叠加减速，为图表塔创造输出窗口。',
+            '提示：经费不足时尝试防守紧凑布局，多个塔共享同一路径。',
+            '提示：后期质疑弹抗性高，记得升级为高伤害的实验数据集。',
+            '提示：不同波次会改变质疑弹速度，观察节奏及时补位。'
+        ];
+
+        difficultyButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                currentDifficulty = button.dataset.difficulty;
+                difficultyButtons.forEach(btn => btn.classList.toggle('active', btn === button));
+            });
+        });
+
+        function getEditorMultiplier() {
+            return DIFFICULTIES[currentDifficulty].editorMultiplier;
+        }
+
+        function getEditorSpawnChance() {
+            const baseChance = 0.25;
+            const growth = Math.min(0.45, (wave - 1) * 0.035);
+            return Math.min(0.75, baseChance + growth);
+        }
+
+        function resetGame() {
+            towers = [];
+            enemies = [];
+            projectiles = [];
+            slows = [];
+            tokens = [];
+            funds = 120;
+            impactFactor = 2.5;
+            hp = 3;
+            wave = 1;
+            running = false;
+            enemiesToSpawn = getEnemyCountForWave(wave);
+            timeSinceLastSpawn = 0;
+            spawnInterval = 2.5;
+            selectedTower = null;
+            hoverCell = null;
+            gameTime = 0;
+            initialTokenSpawned = 0;
+            lastTimestamp = performance.now();
+            updateHUD();
+            render();
+        }
+
+        function updateHUD() {
+            ifValueEl.textContent = impactFactor.toFixed(1);
+            fundValueEl.textContent = funds.toFixed(0);
+            waveValueEl.textContent = `${wave} / ${MAX_WAVES}`;
+            hpValueEl.textContent = hp;
+        }
+
+        function getEnemyCountForWave(currentWave) {
+            return 5 + currentWave * 3;
+        }
+
+        function createEnemy() {
+            const row = Math.floor(Math.random() * GRID_ROWS);
+            const hpAmount = ENEMY_BASE_HP + ENEMY_HP_GROWTH * (wave - 1) + Math.random() * 10;
+            const speed = ENEMY_SPEED_BASE + ENEMY_SPEED_GROWTH * (wave - 1) + Math.random() * 5;
+            const editorChance = getEditorSpawnChance();
+            const type = Math.random() < editorChance ? 'Editor' : 'Reviewer';
+            const multiplier = type === 'Editor' ? getEditorMultiplier() : 1;
+            const effectiveHp = hpAmount * multiplier;
+            enemies.push({
+                row,
+                x: canvas.width + 20,
+                y: row * CELL_HEIGHT + CELL_HEIGHT / 2,
+                hp: effectiveHp,
+                maxHp: effectiveHp,
+                speed,
+                slowTimer: 0,
+                slowFactor: 1,
+                reward: 12 + wave * 2,
+                attackTimer: Math.random() * ENEMY_ATTACK_INTERVAL,
+                type
+            });
+        }
+
+        function createProjectile(tower, target) {
+            const angle = Math.atan2(target.y - tower.y, target.x - tower.x);
+            projectiles.push({
+                x: tower.x,
+                y: tower.y,
+                vx: Math.cos(angle) * 360,
+                vy: Math.sin(angle) * 360,
+                damage: tower.damage,
+                color: tower.color,
+                targetRow: tower.row
+            });
+        }
+
+        function createSlowField(tower) {
+            slows.push({
+                row: tower.row,
+                col: tower.col,
+                radius: CELL_WIDTH * 1.2,
+                factor: tower.slowFactor,
+                duration: tower.slowDuration,
+                timer: tower.slowDuration,
+                color: tower.color
+            });
+        }
+
+        function damageTower(tower, amount, destroyedMap, attackerType) {
+            if (!tower) return;
+            tower.integrity -= amount;
+            if (tower.integrity <= 0) {
+                destroyedMap.set(tower, attackerType);
+            }
+        }
+
+        function handleTowerPlacement(col, row) {
+            if (!selectedTower) return;
+            if (towers.some(t => t.col === col && t.row === row)) {
+                hintBar.textContent = '这里已经放置过证据，试试其他位置。';
+                return;
+            }
+            if (funds < selectedTower.cost) {
+                hintBar.textContent = '经费不足，先击退更多质疑弹累积经费。';
+                return;
+            }
+            funds -= selectedTower.cost;
+            const towerData = {
+                ...selectedTower,
+                col,
+                row,
+                x: col * CELL_WIDTH + CELL_WIDTH / 2,
+                y: row * CELL_HEIGHT + CELL_HEIGHT / 2,
+                cooldown: 0,
+                integrity: selectedTower.energy
+            };
+            towers.push(towerData);
+            rowTowerSets[row].add(selectedTower.id);
+            checkRowSynergy(row);
+            hintBar.textContent = `已部署 ${selectedTower.label}。`;
+            updateHUD();
+        }
+        function triggerSunRain(rowIndex) {
+            const duration = 1000;
+            const drops = 10;
+            for (let i = 0; i < drops; i++) {
+                setTimeout(() => {
+                    const col = Math.floor(Math.random() * GRID_COLS);
+                    const x = col * CELL_WIDTH + CELL_WIDTH / 2;
+                    const targetY = rowIndex * CELL_HEIGHT + CELL_HEIGHT / 2;
+                    const image = TOKEN_IMAGES[Math.floor(Math.random() * TOKEN_IMAGES.length)];
+                    tokens.push({
+                        x,
+                        y: -50,
+                        targetY,
+                        speed: TOKEN_FALL_SPEED * 1.6,
+                        stayed: 0,
+                        image,
+                        active: true
+                    });
+                }, (duration / drops) * i);
+            }
+        }
+
+        function checkRowSynergy(rowIndex) {
+            const uniqueTowers = rowTowerSets[rowIndex];
+            if (uniqueTowers.size >= 6) {
+                triggerSunRain(rowIndex);
+                uniqueTowers.clear();
+            }
+        }
+
+
+        function findTargets(tower) {
+            const rangeSq = tower.range * tower.range;
+            let closest = null;
+            let closestDist = Infinity;
+            for (const enemy of enemies) {
+                if (!tower.globalTarget && enemy.row !== tower.row) continue;
+                const distSq = (enemy.x - tower.x) ** 2 + (enemy.y - tower.y) ** 2;
+                if (distSq <= rangeSq && distSq < closestDist) {
+                    closest = enemy;
+                    closestDist = distSq;
+                }
+            }
+            return closest;
+        }
+
+        function applySlowEffects(delta) {
+            slows = slows.filter(field => {
+                field.timer -= delta;
+                return field.timer > 0;
+            });
+            for (const enemy of enemies) {
+                enemy.slowFactor = 1;
+            }
+            for (const field of slows) {
+                for (const enemy of enemies) {
+                    if (enemy.row !== field.row) continue;
+                    const dx = enemy.x - (field.col * CELL_WIDTH + CELL_WIDTH / 2);
+                    const dy = enemy.y - (field.row * CELL_HEIGHT + CELL_HEIGHT / 2);
+                    const distSq = dx * dx + dy * dy;
+                    if (distSq <= field.radius * field.radius) {
+                        enemy.slowFactor = Math.min(enemy.slowFactor, field.factor);
+                    }
+                }
+            }
+        }
+
+        function spawnToken() {
+            const col = Math.floor(Math.random() * GRID_COLS);
+            const x = col * CELL_WIDTH + CELL_WIDTH / 2;
+            const targetY = Math.random() * (canvas.height - CELL_HEIGHT * 1.5) + CELL_HEIGHT * 0.75;
+            const image = TOKEN_IMAGES[Math.floor(Math.random() * TOKEN_IMAGES.length)];
+            tokens.push({
+                x,
+                y: -50,
+                targetY,
+                speed: TOKEN_FALL_SPEED,
+                stayed: 0,
+                image,
+                active: true
+            });
+        }
+
+        function updateTokens(delta) {
+            while (
+                initialTokenSpawned < INITIAL_TOKEN_BURST_COUNT &&
+                gameTime >= (initialTokenSpawned * INITIAL_TOKEN_BURST_DURATION) / INITIAL_TOKEN_BURST_COUNT
+            ) {
+                spawnToken();
+                initialTokenSpawned++;
+            }
+
+            tokenTimer += delta;
+            const tokenInterval = TOKEN_SPAWN_INTERVAL * DIFFICULTIES[currentDifficulty].tokenIntervalScale;
+            if (tokenTimer >= tokenInterval) {
+                spawnToken();
+                tokenTimer = 0;
+            }
+
+            tokens = tokens.filter(token => {
+                if (!token.active) return false;
+                if (token.y < token.targetY) {
+                    token.y += token.speed * delta;
+                    if (token.y >= token.targetY) {
+                        token.y = token.targetY;
+                    }
+                } else {
+                    token.stayed += delta;
+                }
+                if (token.stayed >= TOKEN_LIFETIME) {
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        function update(delta) {
+            if (!running) return;
+
+            gameTime += delta;
+            timeSinceLastSpawn += delta;
+            if (enemiesToSpawn > 0 && timeSinceLastSpawn >= spawnInterval) {
+                createEnemy();
+                enemiesToSpawn--;
+                timeSinceLastSpawn = 0;
+                spawnInterval = Math.max(0.8, 2.6 - wave * 0.12 + Math.random() * 0.3);
+            }
+
+            updateTokens(delta);
+            applySlowEffects(delta);
+
+            const destroyedTowers = new Map();
+
+            for (const tower of towers) {
+                if (tower.fireRate <= 0) {
+                if (tower.id === 'clinical' && tower.cooldown <= 0) {
+                        createSlowField(tower);
+                        tower.cooldown = 4.5;
+                    } else {
+                        tower.cooldown -= delta;
+                    }
+                    continue;
+                }
+                tower.cooldown -= delta;
+                if (tower.cooldown <= 0) {
+                    if (tower.globalTarget) {
+                        let fired = false;
+                        const rangeSq = tower.range * tower.range;
+                        for (const enemy of enemies) {
+                            const distSq = (enemy.x - tower.x) ** 2 + (enemy.y - tower.y) ** 2;
+                            if (distSq <= rangeSq) {
+                                createProjectile(tower, enemy);
+                                fired = true;
+                            }
+                        }
+                        if (fired) {
+                            tower.cooldown = tower.fireRate;
+                        } else {
+                            tower.cooldown = 0;
+                        }
+                    } else {
+                        const target = findTargets(tower);
+                        if (target) {
+                            createProjectile(tower, target);
+                            tower.cooldown = tower.fireRate;
+                        }
+                    }
+                }
+            }
+
+        projectiles = projectiles.filter(projectile => {
+                projectile.x += projectile.vx * delta;
+                projectile.y += projectile.vy * delta;
+                if (projectile.x > canvas.width + 30 || projectile.x < -30) {
+                    return false;
+                }
+                for (const enemy of enemies) {
+                    const distSq = (enemy.x - projectile.x) ** 2 + (enemy.y - projectile.y) ** 2;
+                    if (distSq < (CELL_WIDTH * 0.3) ** 2) {
+                        enemy.hp -= projectile.damage;
+                        return false;
+                    }
+                }
+                return true;
+            });
+
+            enemies = enemies.filter(enemy => {
+                const speed = enemy.speed * enemy.slowFactor;
+                enemy.x -= speed * delta;
+                enemy.attackTimer -= delta;
+                while (enemy.attackTimer <= 0) {
+                    const attackRadius = CELL_WIDTH * 0.55;
+                    let attacked = false;
+                    for (const tower of towers) {
+                        if (tower.row !== enemy.row) continue;
+                        if (destroyedTowers.has(tower)) continue;
+                        if (Math.abs(tower.x - enemy.x) <= attackRadius) {
+                            const editorMultiplier = getEditorMultiplier();
+                            const dmg = enemy.type === 'Editor'
+                                ? REVIEWER_ATTACK_DAMAGE * editorMultiplier + EDITOR_ATTACK_GROWTH * (wave - 1) * editorMultiplier
+                                : REVIEWER_ATTACK_DAMAGE;
+                            damageTower(tower, dmg, destroyedTowers, enemy.type);
+                            attacked = true;
+                        }
+                    }
+                    enemy.attackTimer += ENEMY_ATTACK_INTERVAL;
+                    if (!attacked) {
+                        break;
+                    }
+                }
+                if (enemy.hp <= 0) {
+                    impactFactor += 0.1;
+                    funds += enemy.reward;
+                    updateHUD();
+                    return false;
+                }
+                if (enemy.x <= 0) {
+                    hp -= 1;
+                    updateHUD();
+                    if (hp <= 0) {
+                        triggerGameOver(false);
+                    }
+                    return false;
+                }
+                return true;
+            });
+
+            if (destroyedTowers.size > 0) {
+                const destroyedLabels = new Set();
+                const attackerTypes = new Set();
+                towers = towers.filter(tower => {
+                    if (destroyedTowers.has(tower)) {
+                        destroyedLabels.add(tower.label);
+                        attackerTypes.add(destroyedTowers.get(tower));
+                        rowTowerSets[tower.row].delete(tower.id);
+                        return false;
+                    }
+                    return true;
+                });
+                if (destroyedLabels.size > 0) {
+                    let attackerLabel = 'Reviewer 与 Editor';
+                    if (attackerTypes.size === 1) {
+                        attackerLabel = attackerTypes.has('Editor') ? 'Editor' : 'Reviewer';
+                    }
+                    hintBar.textContent = `${attackerLabel} 摧毁了 ${Array.from(destroyedLabels).join('、')}！`;
+                }
+            }
+
+            if (hp <= 0) {
+                running = false;
+                return;
+            }
+
+            if (enemiesToSpawn === 0 && enemies.length === 0) {
+                if (wave >= MAX_WAVES) {
+                    triggerGameOver(true);
+                    return;
+                }
+                wave++;
+                enemiesToSpawn = getEnemyCountForWave(wave);
+                hintIndex = (hintIndex + 1) % hints.length;
+                hintBar.textContent = hints[hintIndex];
+                updateHUD();
+            }
+        }
+
+        function renderGrid() {
+            ctx.fillStyle = '#f5f7ff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let row = 0; row < GRID_ROWS; row++) {
+                for (let col = 0; col < GRID_COLS; col++) {
+                    const x = col * CELL_WIDTH;
+                    const y = row * CELL_HEIGHT;
+                    ctx.strokeStyle = 'rgba(120, 140, 220, 0.17)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(x, y, CELL_WIDTH, CELL_HEIGHT);
+
+                    if (hoverCell && hoverCell.row === row && hoverCell.col === col && !towers.some(t => t.row === row && t.col === col)) {
+                        ctx.fillStyle = 'rgba(92, 120, 255, 0.12)';
+                        ctx.fillRect(x, y, CELL_WIDTH, CELL_HEIGHT);
+                    }
+                }
+            }
+        }
+
+        function renderTokens() {
+            for (const token of tokens) {
+                const size = CELL_WIDTH * 0.6;
+                const half = size / 2;
+                if (token.image.complete) {
+                    ctx.drawImage(token.image, token.x - half, token.y - half, size, size);
+                } else {
+                    ctx.fillStyle = 'rgba(255, 219, 88, 0.9)';
+                    ctx.beginPath();
+                    ctx.arc(token.x, token.y, half, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        function renderTowers() {
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            for (const tower of towers) {
+                const width = CELL_WIDTH * 0.9;
+                const height = CELL_HEIGHT * 0.65;
+                const x = tower.x - width / 2;
+                const y = tower.y - height / 2;
+                ctx.fillStyle = 'rgba(255,255,255,0.86)';
+                ctx.strokeStyle = tower.color;
+                ctx.lineWidth = 2;
+                ctx.fillRect(x, y, width, height);
+                ctx.strokeRect(x, y, width, height);
+
+                ctx.fillStyle = tower.color;
+                ctx.font = `600 ${Math.floor(CELL_HEIGHT * 0.3)}px Product Sans`;
+                ctx.fillText(tower.label, tower.x, tower.y - height * 0.15);
+
+                ctx.font = `500 ${Math.floor(CELL_HEIGHT * 0.2)}px Roboto`;
+                ctx.fillStyle = '#1f2937';
+                ctx.fillText(`${Math.max(0, Math.ceil(tower.integrity))}`, tower.x, tower.y + height * 0.28);
+
+                if (tower.id !== 'clinical') {
+                    ctx.strokeStyle = `${tower.color}4d`;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(tower.x, tower.y, tower.range, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function renderSlows() {
+            for (const field of slows) {
+                const x = field.col * CELL_WIDTH + CELL_WIDTH / 2;
+                const y = field.row * CELL_HEIGHT + CELL_HEIGHT / 2;
+                const alpha = Math.max(0, field.timer / field.duration);
+                ctx.fillStyle = `rgba(46, 196, 182, ${0.35 * alpha})`;
+                ctx.beginPath();
+                ctx.arc(x, y, field.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function renderEnemies() {
+            for (const enemy of enemies) {
+                const x = enemy.x;
+                const y = enemy.y;
+                ctx.fillStyle = enemy.type === 'Editor' ? '#d9480f' : '#1f2a5f';
+                ctx.beginPath();
+                ctx.arc(x, y, CELL_HEIGHT * 0.28, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.font = `600 ${Math.floor(CELL_HEIGHT * 0.24)}px Product Sans`;
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const letter = enemy.type === 'Editor' ? 'E' : 'R';
+                ctx.fillText(letter, x, y);
+
+                const hpPercent = enemy.hp / enemy.maxHp;
+                ctx.fillStyle = '#ff6b6b';
+                ctx.fillRect(x - CELL_WIDTH * 0.35, y - CELL_HEIGHT * 0.5, CELL_WIDTH * 0.7 * hpPercent, 6);
+                ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                ctx.strokeRect(x - CELL_WIDTH * 0.35, y - CELL_HEIGHT * 0.5, CELL_WIDTH * 0.7, 6);
+            }
+        }
+
+        function renderProjectiles() {
+            ctx.shadowColor = 'rgba(92, 120, 255, 0.4)';
+            ctx.shadowBlur = 12;
+            for (const projectile of projectiles) {
+                ctx.fillStyle = projectile.color;
+                ctx.beginPath();
+                ctx.arc(projectile.x, projectile.y, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        function renderBase() {
+            ctx.fillStyle = 'rgba(84, 103, 255, 0.12)';
+            ctx.fillRect(0, 0, CELL_WIDTH, canvas.height);
+            ctx.fillStyle = 'rgba(255, 101, 91, 0.12)';
+            ctx.fillRect(canvas.width - CELL_WIDTH, 0, CELL_WIDTH, canvas.height);
+        }
+
+        function render() {
+            renderGrid();
+            renderBase();
+            renderSlows();
+            renderTokens();
+            renderTowers();
+            renderEnemies();
+            renderProjectiles();
+        }
+
+        function gameLoop(timestamp) {
+            const delta = (timestamp - lastTimestamp) / 1000 || 0;
+            lastTimestamp = timestamp;
+
+            update(delta);
+            render();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function triggerGameOver(success) {
+            running = false;
+            endTitle.textContent = success ? '成功发表！' : '被拒绝，需要大修';
+            endSummary.textContent = `最终影响因子 ${impactFactor.toFixed(1)}，守住 ${wave} / ${MAX_WAVES} 波。`;
+            endPopup.style.display = 'flex';
+        }
+
+        function startGame() {
+            resetGame();
+            startPopup.style.display = 'none';
+            endPopup.style.display = 'none';
+            running = true;
+        }
+
+        function restartGame() {
+            resetGame();
+            startPopup.style.display = 'none';
+            endPopup.style.display = 'none';
+            running = true;
+        }
+
+        function setupTowerPanel() {
+            towerPanel.innerHTML = '';
+            for (const tower of TOWER_TYPES) {
+                const button = document.createElement('button');
+                button.className = 'tower-button';
+                button.innerHTML = `
+                    <div class="tower-title">${tower.label}</div>
+                    <div class="tower-desc">${tower.desc}</div>
+                    <div class="tower-cost">⚡ ${tower.energy}</div>
+                `;
+                button.addEventListener('click', () => {
+                    selectedTower = tower;
+                    document.querySelectorAll('.tower-button').forEach(btn => btn.classList.remove('selected'));
+                    button.classList.add('selected');
+                    hintBar.textContent = `已选择 ${tower.label}，点击空格放置。`;
+                });
+                towerPanel.appendChild(button);
+            }
+        }
+
+        function handleMouseMove(event) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (event.clientX - rect.left) * scaleX;
+            const y = (event.clientY - rect.top) * scaleY;
+            const col = Math.floor(x / CELL_WIDTH);
+            const row = Math.floor(y / CELL_HEIGHT);
+            if (col >= 0 && col < GRID_COLS && row >= 0 && row < GRID_ROWS) {
+                hoverCell = { col, row };
+            } else {
+                hoverCell = null;
+            }
+        }
+
+        function tryCollectToken(x, y) {
+            for (let i = 0; i < tokens.length; i++) {
+                const token = tokens[i];
+                const distSq = (token.x - x) ** 2 + (token.y - y) ** 2;
+                if (distSq <= TOKEN_COLLECT_RADIUS ** 2) {
+                    funds += TOKEN_FUND_REWARD;
+                    impactFactor += 0.05;
+                    tokens.splice(i, 1);
+                    updateHUD();
+                    hintBar.textContent = '收集到科研阳光，经费充裕了一些！';
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function handleClick(event) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (event.clientX - rect.left) * scaleX;
+            const y = (event.clientY - rect.top) * scaleY;
+            if (tryCollectToken(x, y)) {
+                return;
+            }
+            const col = Math.floor(x / CELL_WIDTH);
+            const row = Math.floor(y / CELL_HEIGHT);
+            if (col >= 0 && col < GRID_COLS && row >= 0 && row < GRID_ROWS) {
+                handleTowerPlacement(col, row);
+            }
+        }
+
+        canvas.addEventListener('mousemove', handleMouseMove);
+        canvas.addEventListener('mouseleave', () => (hoverCell = null));
+        canvas.addEventListener('click', handleClick);
+
+        canvas.addEventListener('touchstart', (event) => {
+            const touch = event.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (touch.clientX - rect.left) * scaleX;
+            const y = (touch.clientY - rect.top) * scaleY;
+            if (tryCollectToken(x, y)) {
+                return;
+            }
+            const col = Math.floor(x / CELL_WIDTH);
+            const row = Math.floor(y / CELL_HEIGHT);
+            if (col >= 0 && col < GRID_COLS && row >= 0 && row < GRID_ROWS) {
+                handleTowerPlacement(col, row);
+            }
+        }, { passive: true });
+
+        startBtn.addEventListener('click', () => {
+            startGame();
+        });
+
+        tutorialBtn.addEventListener('click', () => {
+            hintIndex = (hintIndex + 1) % hints.length;
+            hintBar.textContent = hints[hintIndex];
+        });
+
+        restartBtn.addEventListener('click', () => {
+            restartGame();
+        });
+
+        retryBtn.addEventListener('click', () => {
+            restartGame();
+        });
+
+        resetGame();
+        setupTowerPanel();
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
+

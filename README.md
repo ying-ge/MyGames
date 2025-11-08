@@ -2,6 +2,7 @@
 
 一个轻量的网页游戏合集，主打"学术 × 娱乐"的学习型小游戏。目前包含：
 
+- **Peer Review Defense**（塔防/策略）
 - **我要思路——连上就有**（基于 FigureYa 缩略图的消除类小游戏）
 - **论文如泉涌**（采用 FigureYa 关键词词库；中英文、教育年级分级、PWA 支持）
 - **我要画图——吃图补图**（经典贪吃蛇游戏，使用 FigureYa 图片作为食物素材，支持多难度和多食物数量设置）
@@ -13,6 +14,7 @@
 
 - 根目录主页（游戏合集）：`index.html`
 - 子项目入口：
+  - Peer Review Defense：`game_peerreview/index.html`
   - 我要思路——连上就有：`game_linkup/index.html`
   - 论文如泉涌：`game_typing/index.html`
   - 我要画图——吃图补图：`game_snake/index.html`
@@ -23,6 +25,7 @@
 - 我要思路——连上就有：https://ying-ge.github.io/FigureYa-Games/game_linkup/
 - 论文如泉涌：https://ying-ge.github.io/FigureYa-Games/game_typing/
 - 我要画图——吃图补图：https://ying-ge.github.io/FigureYa-Games/game_snake/
+- Peer Review Defense：`game_peerreview/index.html`
 
 
 ## 快速开始（本地）
@@ -49,6 +52,9 @@ npx http-server
 ```
 FigureYa-Games/
 ├── index.html                 # 合集首页（卡片进入各游戏）
+├── game_peerreview/           # Peer Review Defense
+│   ├── index.html
+│   └── README.md
 ├── game_linkup/               # 我要思路——连上就有
 │   ├── index.html
 │   └── README.md
@@ -73,6 +79,20 @@ FigureYa-Games/
 
 
 ## 子项目一览
+
+### Peer Review Defense（`game_peerreview/`）
+
+- 特色：
+  - 塔防式投稿玩法：放置核心图表、实验数据集与引用壁垒，抵挡 Reviewer / Editor 投来的“质疑弹”
+  - FigureYa 图表像阳光一样随机掉落，点击即可补充 Funding 与影响因子
+  - 提供基础 / 苛刻两档难度，Editor 攻击与耐久分别为 Reviewer 的 1× / 2×
+  - 多波次审稿压力，后期 Editor 出场比例提升、质疑强度不断递增
+  - 经费（资源）与影响因子系统，击败质疑即可补充资金并提升评分
+  - 支持鼠标/触控部署，画布实时刷新状态提示
+- 文档：详见 `game_peerreview/README.md`
+- 入口：`game_peerreview/index.html`
+
+---
 
 ### 我要思路——连上就有（`game_linkup/`）
 
