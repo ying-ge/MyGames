@@ -473,7 +473,7 @@
                 range: CELL_WIDTH * 3.6,
                 color: '#ffa94d',
                 explosionInterval: 6,
-                desc: '严密机理驱动，定期引爆连锁反应。',
+                desc: '由相邻 Data 定期引爆连锁反应。',
             },
             {
                 id: 'ai',
@@ -647,6 +647,14 @@
         }
 
         function triggerMechanismExplosion(tower) {
+            const hasAdjacentData = towers.some(other =>
+                other.id === 'data' &&
+                other.row === tower.row &&
+                Math.abs(other.col - tower.col) === 1
+            );
+            if (!hasAdjacentData) {
+                return;
+            }
             let cleared = 0;
             for (const enemy of enemies) {
                 if (enemy.hp <= 0) continue;
@@ -887,13 +895,22 @@
                         }
                     }
                 }
-                if (tower.explosionTimer !== null) {
+            if (tower.explosionTimer !== null) {
+                const hasAdjacentData = towers.some(other =>
+                    other.id === 'data' &&
+                    other.row === tower.row &&
+                    Math.abs(other.col - tower.col) === 1
+                );
+                if (!hasAdjacentData) {
+                    tower.explosionTimer = tower.explosionInterval;
+                } else {
                     tower.explosionTimer -= delta;
                     if (tower.explosionTimer <= 0) {
                         triggerMechanismExplosion(tower);
                         tower.explosionTimer = tower.explosionInterval;
                     }
                 }
+            }
             }
 
         projectiles = projectiles.filter(projectile => {
