@@ -424,7 +424,7 @@
                 label: 'Data',
                 cost: 60,
                 energy: 60,
-                damage: 60 * DAMAGE_RATIO,
+                damage: 60 * DAMAGE_RATIO * 1.5,
                 fireRate: 1.0,
                 range: CELL_WIDTH * 3,
                 color: '#4c6ef5',
@@ -442,32 +442,10 @@
                 desc: '射速更快的近程火力，适合前排防守。',
             },
             {
-                id: 'novelty',
-                label: 'Novelty',
-                cost: 90,
-                energy: 90,
-                damage: 90 * DAMAGE_RATIO,
-                fireRate: 1.6,
-                range: CELL_WIDTH * 4.2,
-                color: '#ff6b6b',
-                desc: '高影响新颖度，远距离重创 Reviewer / Editor 干扰。',
-            },
-            {
-                id: 'mechanism',
-                label: 'Mechanism',
-                cost: 90,
-                energy: 90,
-                damage: 90 * DAMAGE_RATIO,
-                fireRate: 1.2,
-                range: CELL_WIDTH * 3.6,
-                color: '#ffa94d',
-                desc: '严密机理驱动，持续高效剖析 Reviewer / Editor 弱点。',
-            },
-            {
                 id: 'clinical',
                 label: 'Clinical',
-                cost: 120,
-                energy: 120,
+                cost: 90,
+                energy: 90,
                 damage: 0,
                 fireRate: 0,
                 range: 0,
@@ -477,11 +455,33 @@
                 desc: '临床佐证调节区，平衡 Reviewer / Editor 推进。',
             },
             {
+                id: 'novelty',
+                label: 'Novelty',
+                cost: 120,
+                energy: 120,
+                damage: 120 * DAMAGE_RATIO,
+                fireRate: 1.6,
+                range: CELL_WIDTH * 4.2,
+                color: '#ff6b6b',
+                desc: '高影响新颖度，远距离重创 Reviewer / Editor 干扰。',
+            },
+            {
+                id: 'mechanism',
+                label: 'Mechanism',
+                cost: 120,
+                energy: 120,
+                damage: 120 * DAMAGE_RATIO,
+                fireRate: 1.2,
+                range: CELL_WIDTH * 3.6,
+                color: '#ffa94d',
+                desc: '严密机理驱动，持续高效剖析 Reviewer / Editor 弱点。',
+            },
+            {
                 id: 'ai',
                 label: 'AI',
-                cost: 180,
-                energy: 180,
-                damage: 180 * (DAMAGE_RATIO * 0.35),
+                cost: 150,
+                energy: 150,
+                damage: 150 * (DAMAGE_RATIO * 0.35),
                 fireRate: 2.4,
                 range: CELL_WIDTH * 3.6,
                 color: '#1aa6b7',
@@ -1063,10 +1063,10 @@
             renderGrid();
             renderBase();
             renderSlows();
-            renderTokens();
             renderTowers();
             renderEnemies();
             renderProjectiles();
+            renderTokens();
         }
 
         function gameLoop(timestamp) {
