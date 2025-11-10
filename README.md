@@ -1,13 +1,11 @@
 # FigureYa Games
 
-A lightweight collection of browser-based mini games that mix “academia × entertainment.” Every title is designed for quick play sessions with a research twist. The bundle currently includes:
+A lightweight collection of browser-based mini games that mix “academia × entertainment.” Every title is designed for quick play sessions with a research twist. The bundle currently includes six games:
 
 - **Peer Review Defense** — tower defense / strategy
-- **Lab Carnival** — party brawler with AI opponents
 - **Mario’s CNS Sprint** — platformer tribute
 - **FigureYa Flight** — chase & dodge challenge
 - **Link Up Ideas** — tile-link puzzler using FigureYa thumbnails
-- **Paper Cascade** — typing trainer with FigureYa keyword decks (bilingual, graded, PWA-ready)
 - **Snack for Figures** — snake remake with FigureYa imagery and multiple difficulty modes
 - **Tetris Remix** — classic falling-block puzzle featuring FigureYa tiles
 
@@ -18,11 +16,9 @@ You can open everything directly in a browser or deploy to GitHub Pages for inst
 - Collection home: `index.html`
 - Individual entry points:
   - Peer Review Defense: `game_peerreview/index.html`
-  - Lab Carnival: `game_eggparty/index.html`
   - Mario’s CNS Sprint: `game_mario/index.html`
   - FigureYa Flight: `game_catmouse/index.html`
   - Link Up Ideas: `game_linkup/index.html`
-  - Paper Cascade: `game_typing/index.html`
   - Snack for Figures: `game_snake/index.html`
   - Tetris Remix: `game_tetris/index.html`
 
@@ -32,11 +28,9 @@ You can open everything directly in a browser or deploy to GitHub Pages for inst
 | --- | --- |
 | Collection Home | https://ying-ge.github.io/FigureYa-Games/ |
 | Peer Review Defense | https://ying-ge.github.io/FigureYa-Games/game_peerreview/ |
-| Lab Carnival | https://ying-ge.github.io/FigureYa-Games/game_eggparty/ |
 | Mario’s CNS Sprint | https://ying-ge.github.io/FigureYa-Games/game_mario/ |
 | FigureYa Flight | https://ying-ge.github.io/FigureYa-Games/game_catmouse/ |
 | Link Up Ideas | https://ying-ge.github.io/FigureYa-Games/game_linkup/ |
-| Paper Cascade | https://ying-ge.github.io/FigureYa-Games/game_typing/ |
 | Snack for Figures | https://ying-ge.github.io/FigureYa-Games/game_snake/ |
 | Tetris Remix | https://ying-ge.github.io/FigureYa-Games/game_tetris/ |
 
@@ -45,7 +39,7 @@ You can open everything directly in a browser or deploy to GitHub Pages for inst
 This repository is a static front-end site:
 
 - Quickest option: double-click `index.html` to launch the hub.
-- Recommended: serve the folder via a local static server (enables PWA / Service Worker features used in `game_typing`).
+- Recommended: serve the folder via a local static server (unlocks any Service Worker or PWA features).
 
 Common approaches:
 
@@ -66,8 +60,6 @@ FigureYa-Games/
 ├── game_peerreview/           # Peer Review Defense
 │   ├── index.html
 │   └── README.md
-├── game_eggparty/             # Lab Carnival
-│   └── index.html
 ├── game_mario/                # Mario’s CNS Sprint
 │   └── index.html
 ├── game_catmouse/             # FigureYa Flight
@@ -79,17 +71,6 @@ FigureYa-Games/
 │   ├── index.html
 │   ├── README.md
 │   └── gallery_compress/      # Artwork assets
-├── game_typing/               # Paper Cascade (PWA / SEO / leaderboards)
-│   ├── 404.html
-│   ├── deploy.sh
-│   ├── index.html
-│   ├── LICENSE
-│   ├── manifest.json
-│   ├── PROJECT_SUMMARY.md
-│   ├── README.md
-│   ├── robots.txt
-│   ├── sitemap.xml
-│   └── sw.js
 ├── game_tetris/               # Tetris Remix
 │   └── index.html
 ├── png/                       # Original image assets
@@ -145,18 +126,6 @@ FigureYa-Games/
 
 ---
 
-### Lab Carnival (`game_eggparty/`)
-
-- 90-second party brawler for score chasers.
-- Compete for FigureYa artifacts against multiple AI rivals.
-- Entry: `game_eggparty/index.html`
-
-<a href="https://ying-ge.github.io/FigureYa-Games/game_eggparty/" target="_blank">
-  <img src="png_compressed/game_eggparty.webp" alt="Lab Carnival" width="520" />
-</a>
-
----
-
 ### Mario’s CNS Sprint (`game_mario/`)
 
 - Platformer homage infused with research humor.
@@ -188,23 +157,6 @@ FigureYa-Games/
 
 <a href="https://ying-ge.github.io/FigureYa-Games/game_tetris/" target="_blank">
   <img src="png_compressed/game_tetris.webp" alt="Tetris Remix" width="520" />
-</a>
-
----
-
-### Paper Cascade (`game_typing/`)
-
-- Vocabulary sourced from college / graduate-level FigureYa keywords (see “Citation”).
-- Retro terminal theme with CRT scanline effect.
-- Bilingual (Chinese / English) modes and four education tiers.
-- Live stats (WPM, accuracy, score, timer) plus local leaderboards.
-- Responsive design, audio feedback, dark / light themes.
-- 100% front-end, PWA-ready, GitHub Pages friendly.
-- Docs: `game_typing/README.md`, `game_typing/PROJECT_SUMMARY.md`
-- Entry: `game_typing/index.html`
-
-<a href="https://ying-ge.github.io/FigureYa-Games/game_typing/" target="_blank">
-  <img src="png_compressed/game_typing.webp" alt="Paper Cascade" width="520" />
 </a>
 
 ## Citation
