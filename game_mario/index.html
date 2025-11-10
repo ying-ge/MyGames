@@ -59,6 +59,68 @@
         box-shadow: 0 12px 28px rgba(65, 101, 255, 0.28);
       }
 
+      .restart-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        width: fit-content;
+        padding: 8px 18px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--accent);
+        font-weight: 600;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        font-family: inherit;
+        box-shadow: 0 8px 22px rgba(65, 101, 255, 0.2);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .restart-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px rgba(65, 101, 255, 0.28);
+      }
+
+      .level-selector {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+      }
+
+      .level-selector label {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .level-selector select {
+        padding: 8px 16px;
+        border-radius: 12px;
+        border: 2px solid rgba(65, 101, 255, 0.3);
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--accent);
+        font-weight: 600;
+        font-size: 14px;
+        font-family: inherit;
+        cursor: pointer;
+        outline: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .level-selector select:hover {
+        border-color: rgba(65, 101, 255, 0.5);
+        box-shadow: 0 4px 12px rgba(65, 101, 255, 0.15);
+      }
+
+      .level-selector select:focus {
+        border-color: var(--accent);
+        box-shadow: 0 4px 12px rgba(65, 101, 255, 0.25);
+      }
+
       .panel {
         background: var(--panel);
         border-radius: 28px;
@@ -259,9 +321,28 @@
               </li>
             </ul>
           </div>
+          <div style="margin-top: 12px;">
+            <button class="restart-button" id="restart-current-level" type="button">
+              <span>↻</span>
+              Restart Current Level
+            </button>
+          </div>
+          <div class="level-selector">
+            <label for="level-select">Start Level:</label>
+            <select id="level-select">
+              <option value="0">1-1 FigureYa Plains</option>
+              <option value="1">1-2 Underground Lab</option>
+              <option value="2">1-3 Cloudtop Testbed</option>
+              <option value="3">1-4 Candy House</option>
+              <option value="4">1-5 Haunted Mansion</option>
+              <option value="5">1-6 Underwater Lab</option>
+              <option value="6">1-7 Mountain Climb</option>
+              <option value="7">1-8 Ski Resort</option>
+            </select>
+          </div>
         </div>
         <div class="notice" role="note">
-          <strong>Tip:</strong> Stomp Goombas by landing on them, hit “?” blocks or collect 10 figure sheets to earn a fireball, grab mushrooms to grow or gain lives, and watch the candy house erupt in CNS fireworks at the finish!
+          <strong>Tip:</strong> Stomp Goombas by landing on them, hit "?" blocks or collect 10 figure sheets to earn a fireball, grab mushrooms to grow or gain lives, and watch the candy house erupt in CNS fireworks at the finish!
         </div>
         <div class="canvas-wrapper">
           <canvas
@@ -383,6 +464,8 @@
           this.extraLives = 0;
           this.ammo = 0;
           this.collectibles = 0;
+          this.onSkateboard = false;
+          this.skateboardTimer = 0;
           this.updateDimensions("small");
         }
 
@@ -421,7 +504,25 @@
         }
 
         update(dt) {
-          const speed = this.size === "big" ? 300 : 280;
+          const isSnow = activeTheme && activeTheme.key === "snow";
+          
+          // 滑板状态更新
+          if (this.onSkateboard) {
+            this.skateboardTimer += dt;
+            // 滑板持续10秒
+            if (this.skateboardTimer > 10) {
+              this.onSkateboard = false;
+              this.skateboardTimer = 0;
+              showToast("Skateboard worn out!", 1200);
+            }
+          }
+          
+          // 滑雪场速度更快，滑板上更快
+          const baseSpeed = this.size === "big" ? 300 : 280;
+          let speed = isSnow ? baseSpeed * 1.3 : baseSpeed;
+          if (this.onSkateboard) {
+            speed = baseSpeed * 2.0; // 滑板上速度翻倍
+          }
           const accel = this.onGround ? 1400 : 860;
           const maxSpeed = this.onGround ? speed : speed - 40;
 
@@ -432,8 +533,12 @@
             this.vx = clamp(this.vx + accel * dt, -maxSpeed, maxSpeed);
             this.facing = 1;
           } else if (this.onGround) {
-            this.vx *= world.friction;
-            if (Math.abs(this.vx) < 40) this.vx = 0;
+            // 滑板上摩擦力更低
+            const friction = this.onSkateboard ? 0.96 : world.friction;
+            this.vx *= friction;
+            // 滑板上需要更小的速度阈值才能停下
+            const stopThreshold = this.onSkateboard ? 10 : (isSnow ? 15 : 40);
+            if (Math.abs(this.vx) < stopThreshold) this.vx = 0;
           }
 
           const jumpVelocity = this.size === "big" ? -700 : -600;
@@ -549,6 +654,148 @@
         }
       }
 
+      class Monkey extends Entity {
+        constructor(x, y) {
+          super(x, y, 40, 42);
+          this.direction = -1;
+          this.walkSpeed = 70;
+          this.vx = this.direction * this.walkSpeed;
+          this.state = "walk";
+          this.animationTimer = 0;
+          this.flattenTimer = 0.4;
+          this.jumpTimer = 0;
+          this.jumpInterval = 0.8 + Math.random() * 1.2; // 0.8-2秒跳一次
+          this.onGround = true; // 初始在地面上
+          this.jumpPower = -550; // 跳跃力度
+        }
+
+        update(dt) {
+          if (this.state === "squashed") {
+            this.flattenTimer -= dt;
+            if (this.flattenTimer <= 0) {
+              this.removed = true;
+            }
+            return;
+          }
+
+          // 上蹿下跳：定期跳跃
+          this.jumpTimer += dt;
+          if (this.onGround && this.jumpTimer >= this.jumpInterval) {
+            this.vy = this.jumpPower;
+            this.onGround = false;
+            this.jumpTimer = 0;
+            this.jumpInterval = 0.8 + Math.random() * 1.2; // 重新设置跳跃间隔
+          }
+
+          // 应用重力
+          this.vy += world.gravity * dt;
+          this.vy = Math.min(this.vy, 700);
+          
+          // 水平移动
+          this.vx = this.direction * this.walkSpeed;
+          
+          this.x += this.vx * dt;
+          this.y += this.vy * dt;
+          this.animationTimer += dt;
+        }
+
+        squash() {
+          this.state = "squashed";
+          this.vx = 0;
+          this.vy = 0;
+        }
+      }
+
+      class Shark extends Entity {
+        constructor(x, y) {
+          super(x, y, 48, 36);
+          this.directionX = Math.random() > 0.5 ? 1 : -1;
+          this.directionY = Math.random() > 0.5 ? 1 : -1;
+          this.swimSpeedX = 50 + Math.random() * 30;
+          this.swimSpeedY = 40 + Math.random() * 30;
+          this.vx = this.directionX * this.swimSpeedX;
+          this.vy = this.directionY * this.swimSpeedY;
+          this.state = "swimming";
+          this.animationTimer = 0;
+          this.flattenTimer = 0.4;
+          this.swimTimer = 0;
+          this.changeDirectionTimer = 1 + Math.random() * 2; // 1-3秒后改变方向
+          this.startY = y; // 记录初始Y位置
+          this.swimRange = 200; // 游动范围（上下），在水中可以游得更自由
+          this.startX = x; // 记录初始X位置
+          this.swimRangeX = 300; // 水平游动范围
+        }
+
+        update(dt) {
+          if (this.state === "squashed") {
+            this.flattenTimer -= dt;
+            if (this.flattenTimer <= 0) {
+              this.removed = true;
+            }
+            return;
+          }
+
+          // 在水中游动，不受重力影响
+          // 减少重力影响（浮力效果）
+          this.vy += world.gravity * dt * 0.3; // 只有30%的重力影响
+          this.vy = Math.min(this.vy, 400); // 限制最大下降速度
+          this.vy = Math.max(this.vy, -400); // 限制最大上升速度
+
+          // 定期改变游动方向
+          this.swimTimer += dt;
+          if (this.swimTimer >= this.changeDirectionTimer) {
+            // 随机改变水平方向
+            if (Math.random() > 0.5) {
+              this.directionX *= -1;
+            }
+            // 随机改变垂直方向
+            if (Math.random() > 0.5) {
+              this.directionY *= -1;
+            }
+            // 随机调整速度
+            this.swimSpeedX = 50 + Math.random() * 30;
+            this.swimSpeedY = 40 + Math.random() * 30;
+            this.changeDirectionTimer = 1 + Math.random() * 2;
+            this.swimTimer = 0;
+          }
+
+          // 如果离初始位置太远，向回游（垂直方向）
+          const distanceFromStartY = this.y - this.startY;
+          if (Math.abs(distanceFromStartY) > this.swimRange) {
+            this.directionY = distanceFromStartY > 0 ? -1 : 1;
+          }
+          
+          // 如果离初始位置太远，向回游（水平方向）
+          const distanceFromStartX = this.x - this.startX;
+          if (Math.abs(distanceFromStartX) > this.swimRangeX) {
+            this.directionX = distanceFromStartX > 0 ? -1 : 1;
+          }
+
+          // 应用游动速度
+          this.vx = this.directionX * this.swimSpeedX;
+          // 垂直方向：结合主动游动和重力
+          const targetVy = this.directionY * this.swimSpeedY;
+          this.vy = this.vy * 0.7 + targetVy * 0.3; // 平滑过渡
+
+          // 添加一些随机波动，让游动更自然（减少波动幅度，让游动更平滑）
+          const waveOffsetY = Math.sin(this.animationTimer * 2) * 5;
+          this.vy += waveOffsetY * dt;
+          // 水平方向也有轻微波动
+          const waveOffsetX = Math.sin(this.animationTimer * 2.5) * 3;
+          this.vx += waveOffsetX * dt;
+
+          this.x += this.vx * dt;
+          this.y += this.vy * dt;
+          this.animationTimer += dt;
+        }
+
+        squash() {
+          this.state = "squashed";
+          this.vx = 0;
+          this.vy = 0;
+        }
+      }
+
       class Coin extends Entity {
         constructor(x, y) {
           super(x, y, 42, 42);
@@ -600,6 +847,31 @@
           this.x += this.direction * this.speed * dt;
           this.rotation += dt * 6;
           this.life -= dt;
+        }
+      }
+
+      class Skateboard extends Entity {
+        constructor(x, y) {
+          super(x, y, 50, 12);
+          this.rotation = 0;
+          this.floatTimer = 0;
+        }
+
+        update(dt) {
+          this.floatTimer += dt * 3;
+          this.rotation = Math.sin(this.floatTimer) * 0.1;
+        }
+      }
+
+      class SnowPile extends Entity {
+        constructor(x, y) {
+          super(x, y, 60, 40);
+        }
+      }
+
+      class IcePillar extends Entity {
+        constructor(x, y) {
+          super(x, y, 32, 80);
         }
       }
 
@@ -657,6 +929,9 @@
         pipes: [],
         powerups: [],
         projectiles: [],
+        skateboards: [],
+        snowPiles: [],
+        icePillars: [],
         flag: null,
       };
 
@@ -814,9 +1089,6 @@
             { x: 1260, y: H - 110 },
             { x: 2000, y: H - 110 },
           ],
-          pipes: [
-            { x: 2280, y: H - 152, width: 96, height: 152, warpTo: 1 },
-          ],
           flag: { x: 3300, y: H - 256 },
         },
         {
@@ -860,11 +1132,6 @@
             { x: 900, y: H - 110 },
             { x: 1380, y: H - 110 },
             { x: 1900, y: H - 110 },
-          ],
-          pipes: [
-            { x: 160, y: H - 176, width: 96, height: 176 },
-            { x: 1450, y: H - 176, width: 96, height: 176 },
-            { x: 2100, y: H - 184, width: 128, height: 184 },
           ],
           flag: { x: 2600, y: H - 256 },
         },
@@ -923,11 +1190,6 @@
             { x: 1700, y: H - 160 },
             { x: 2320, y: H - 160 },
             { x: 2900, y: H - 160 },
-          ],
-          pipes: [
-            { x: 1320, y: H - 220, width: 96, height: 220 },
-            { x: 2480, y: H - 210, width: 96, height: 210 },
-            { x: 3320, y: H - 210, width: 110, height: 210, warpTo: 3 },
           ],
           flag: { x: 3600, y: H - 256 },
         },
@@ -991,12 +1253,347 @@
             { x: 1880, y: H - 110 },
             { x: 2260, y: H - 110 },
           ],
-          pipes: [
-            { x: 860, y: H - 200, width: 96, height: 200 },
-            { x: 1800, y: H - 208, width: 110, height: 208 },
-            { x: 2560, y: H - 196, width: 96, height: 196 },
-          ],
           flag: { x: 3200, y: H - 256 },
+        },
+        {
+          name: "1-5",
+          theme: "ghost",
+          intro: "Haunted Mansion 1-5: brave the spooky corridors and escape!",
+          goalX: 3800,
+          timeLimit: 280,
+          groundSegments: 90,
+          start: { x: 140, y: H - 140 },
+          platforms: [
+            { x: 380, y: H - 240, tiles: 2 },
+            { x: 680, y: H - 280, tiles: 3 },
+            { x: 1040, y: H - 220, tiles: 2 },
+            { x: 1380, y: H - 300, tiles: 2 },
+            { x: 1720, y: H - 260, tiles: 3 },
+            { x: 2100, y: H - 240, tiles: 2 },
+            { x: 2480, y: H - 280, tiles: 3 },
+            { x: 2880, y: H - 220, tiles: 2 },
+            { x: 3240, y: H - 260, tiles: 3 },
+          ],
+          bricks: [
+            { x: 520, y: H - 240, kind: "question", reward: "coin" },
+            { x: 568, y: H - 240, kind: "question", reward: "mushroom" },
+            { x: 800, y: H - 300, kind: "question", reward: "coin" },
+            { x: 848, y: H - 300, kind: "solid" },
+            { x: 896, y: H - 300, kind: "question", reward: "coin" },
+            { x: 1200, y: H - 240, kind: "question", reward: "coin" },
+            { x: 1248, y: H - 240, kind: "question", reward: "mushroom" },
+            { x: 1500, y: H - 320, kind: "question", reward: "coin" },
+            { x: 1548, y: H - 320, kind: "question", reward: "coin" },
+            { x: 1860, y: H - 280, kind: "question", reward: "coin" },
+            { x: 1908, y: H - 280, kind: "solid" },
+            { x: 1956, y: H - 280, kind: "question", reward: "mushroom" },
+            { x: 2240, y: H - 260, kind: "question", reward: "coin" },
+            { x: 2620, y: H - 300, kind: "question", reward: "coin" },
+            { x: 2668, y: H - 300, kind: "question", reward: "coin" },
+            { x: 3020, y: H - 240, kind: "question", reward: "mushroom" },
+            { x: 3400, y: H - 280, kind: "question", reward: "coin" },
+          ],
+          coins: [
+            [420, H - 200],
+            [460, H - 220],
+            [500, H - 240],
+            [900, H - 280],
+            [940, H - 300],
+            [980, H - 280],
+            [1280, H - 200],
+            [1320, H - 220],
+            [1360, H - 240],
+            [1640, H - 300],
+            [1680, H - 320],
+            [1720, H - 300],
+            [2000, H - 220],
+            [2040, H - 240],
+            [2080, H - 220],
+            [2380, H - 260],
+            [2420, H - 280],
+            [2460, H - 260],
+            [2780, H - 200],
+            [2820, H - 220],
+            [2860, H - 200],
+            [3180, H - 240],
+            [3220, H - 260],
+            [3260, H - 240],
+          ],
+          goombas: [
+            { x: 800, y: H - 110 },
+            { x: 1200, y: H - 110 },
+            { x: 1600, y: H - 110 },
+            { x: 2200, y: H - 110 },
+            { x: 2800, y: H - 110 },
+            { x: 3400, y: H - 110 },
+          ],
+          flag: { x: 3800, y: H - 256 },
+        },
+        {
+          name: "1-6",
+          theme: "water",
+          intro: "Underwater Lab 1-6: dive deep and explore the aquatic research facility!",
+          goalX: 4000,
+          timeLimit: 300,
+          groundSegments: 95,
+          start: { x: 160, y: H - 200 },
+          platforms: [
+            { x: 400, y: H - 280, tiles: 3 },
+            { x: 800, y: H - 240, tiles: 2 },
+            { x: 1200, y: H - 320, tiles: 3 },
+            { x: 1600, y: H - 260, tiles: 2 },
+            { x: 2000, y: H - 300, tiles: 3 },
+            { x: 2400, y: H - 220, tiles: 2 },
+            { x: 2800, y: H - 280, tiles: 3 },
+            { x: 3200, y: H - 240, tiles: 2 },
+            { x: 3600, y: H - 300, tiles: 3 },
+          ],
+          bricks: [
+            { x: 520, y: H - 300, kind: "question", reward: "coin" },
+            { x: 568, y: H - 300, kind: "question", reward: "mushroom" },
+            { x: 616, y: H - 300, kind: "question", reward: "coin" },
+            { x: 920, y: H - 260, kind: "question", reward: "coin" },
+            { x: 968, y: H - 260, kind: "solid" },
+            { x: 1320, y: H - 340, kind: "question", reward: "mushroom" },
+            { x: 1368, y: H - 340, kind: "question", reward: "coin" },
+            { x: 1416, y: H - 340, kind: "question", reward: "coin" },
+            { x: 1720, y: H - 280, kind: "question", reward: "coin" },
+            { x: 1768, y: H - 280, kind: "question", reward: "mushroom" },
+            { x: 2120, y: H - 320, kind: "question", reward: "coin" },
+            { x: 2168, y: H - 320, kind: "solid" },
+            { x: 2216, y: H - 320, kind: "question", reward: "coin" },
+            { x: 2520, y: H - 240, kind: "question", reward: "mushroom" },
+            { x: 2920, y: H - 300, kind: "question", reward: "coin" },
+            { x: 2968, y: H - 300, kind: "question", reward: "coin" },
+            { x: 3320, y: H - 260, kind: "question", reward: "mushroom" },
+            { x: 3720, y: H - 320, kind: "question", reward: "coin" },
+          ],
+          coins: [
+            [440, H - 260],
+            [480, H - 280],
+            [520, H - 300],
+            [840, H - 220],
+            [880, H - 240],
+            [920, H - 260],
+            [1280, H - 300],
+            [1320, H - 320],
+            [1360, H - 300],
+            [1680, H - 240],
+            [1720, H - 260],
+            [1760, H - 240],
+            [2080, H - 280],
+            [2120, H - 300],
+            [2160, H - 280],
+            [2480, H - 200],
+            [2520, H - 220],
+            [2560, H - 200],
+            [2880, H - 260],
+            [2920, H - 280],
+            [2960, H - 260],
+            [3280, H - 220],
+            [3320, H - 240],
+            [3360, H - 220],
+            [3680, H - 280],
+            [3720, H - 300],
+            [3760, H - 280],
+          ],
+          goombas: [
+            { x: 700, y: H - 110 },
+            { x: 1100, y: H - 110 },
+            { x: 1500, y: H - 110 },
+            { x: 1900, y: H - 110 },
+            { x: 2300, y: H - 110 },
+            { x: 2700, y: H - 110 },
+            { x: 3100, y: H - 110 },
+            { x: 3500, y: H - 110 },
+          ],
+          flag: { x: 4000, y: H - 256 },
+        },
+        {
+          name: "1-7",
+          theme: "climb",
+          intro: "Mountain Climb 1-7: scale the peaks and reach the summit!",
+          goalX: 4200,
+          timeLimit: 320,
+          groundSegments: 100,
+          start: { x: 140, y: H - 140 },
+          platforms: [
+            { x: 400, y: H - 200, tiles: 2 },
+            { x: 700, y: H - 260, tiles: 2 },
+            { x: 1000, y: H - 240, tiles: 3 },
+            { x: 1400, y: H - 280, tiles: 2 },
+            { x: 1800, y: H - 260, tiles: 2 },
+            { x: 2200, y: H - 300, tiles: 2 },
+            { x: 2600, y: H - 280, tiles: 3 },
+            { x: 3000, y: H - 320, tiles: 2 },
+            { x: 3400, y: H - 300, tiles: 2 },
+            { x: 3800, y: H - 320, tiles: 3 },
+          ],
+          bricks: [
+            { x: 520, y: H - 220, kind: "question", reward: "coin" },
+            { x: 568, y: H - 220, kind: "question", reward: "mushroom" },
+            { x: 820, y: H - 280, kind: "question", reward: "coin" },
+            { x: 868, y: H - 280, kind: "solid" },
+            { x: 1120, y: H - 260, kind: "question", reward: "coin" },
+            { x: 1168, y: H - 260, kind: "question", reward: "mushroom" },
+            { x: 1216, y: H - 260, kind: "question", reward: "coin" },
+            { x: 1520, y: H - 300, kind: "question", reward: "coin" },
+            { x: 1568, y: H - 300, kind: "question", reward: "coin" },
+            { x: 1920, y: H - 280, kind: "question", reward: "mushroom" },
+            { x: 2320, y: H - 320, kind: "question", reward: "coin" },
+            { x: 2368, y: H - 320, kind: "solid" },
+            { x: 2720, y: H - 300, kind: "question", reward: "coin" },
+            { x: 2768, y: H - 300, kind: "question", reward: "mushroom" },
+            { x: 3120, y: H - 340, kind: "question", reward: "coin" },
+            { x: 3168, y: H - 340, kind: "question", reward: "coin" },
+            { x: 3520, y: H - 320, kind: "question", reward: "mushroom" },
+            { x: 3920, y: H - 340, kind: "question", reward: "coin" },
+          ],
+          coins: [
+            [420, H - 180],
+            [460, H - 200],
+            [500, H - 220],
+            [780, H - 240],
+            [820, H - 260],
+            [860, H - 240],
+            [1080, H - 220],
+            [1120, H - 240],
+            [1160, H - 220],
+            [1480, H - 260],
+            [1520, H - 280],
+            [1560, H - 260],
+            [1880, H - 240],
+            [1920, H - 260],
+            [1960, H - 240],
+            [2280, H - 280],
+            [2320, H - 300],
+            [2360, H - 280],
+            [2680, H - 260],
+            [2720, H - 280],
+            [2760, H - 260],
+            [3080, H - 300],
+            [3120, H - 320],
+            [3160, H - 300],
+            [3480, H - 280],
+            [3520, H - 300],
+            [3560, H - 280],
+            [3880, H - 300],
+            [3920, H - 320],
+            [3960, H - 300],
+          ],
+          goombas: [
+            { x: 650, y: H - 110 },
+            { x: 950, y: H - 110 },
+            { x: 1350, y: H - 110 },
+            { x: 1750, y: H - 110 },
+            { x: 2150, y: H - 110 },
+            { x: 2550, y: H - 110 },
+            { x: 2950, y: H - 110 },
+            { x: 3350, y: H - 110 },
+            { x: 3750, y: H - 110 },
+          ],
+          flag: { x: 4200, y: H - 256 },
+        },
+        {
+          name: "1-8",
+          theme: "snow",
+          intro: "Ski Resort 1-8: glide through the snowy slopes and reach the finish!",
+          goalX: 4500,
+          timeLimit: 300,
+          groundSegments: 105,
+          start: { x: 120, y: H - 140 },
+          platforms: [
+            { x: 500, y: H - 180, tiles: 2 },
+            { x: 900, y: H - 180, tiles: 2 },
+            { x: 1400, y: H - 180, tiles: 2 },
+            { x: 1900, y: H - 180, tiles: 2 },
+            { x: 2400, y: H - 180, tiles: 2 },
+            { x: 3000, y: H - 180, tiles: 2 },
+            { x: 3500, y: H - 180, tiles: 2 },
+            { x: 4000, y: H - 180, tiles: 2 },
+          ],
+          bricks: [
+            { x: 600, y: H - 200, kind: "question", reward: "coin" },
+            { x: 1000, y: H - 200, kind: "question", reward: "mushroom" },
+            { x: 1500, y: H - 200, kind: "question", reward: "coin" },
+            { x: 2000, y: H - 200, kind: "question", reward: "coin" },
+            { x: 2500, y: H - 200, kind: "question", reward: "mushroom" },
+            { x: 3100, y: H - 200, kind: "question", reward: "coin" },
+            { x: 3600, y: H - 200, kind: "question", reward: "coin" },
+            { x: 4100, y: H - 200, kind: "question", reward: "mushroom" },
+          ],
+          snowPiles: [
+            { x: 700, y: H - 104 },
+            { x: 1100, y: H - 104 },
+            { x: 1600, y: H - 104 },
+            { x: 2100, y: H - 104 },
+            { x: 2600, y: H - 104 },
+            { x: 3200, y: H - 104 },
+            { x: 3700, y: H - 104 },
+            { x: 4200, y: H - 104 },
+          ],
+          icePillars: [
+            { x: 800, y: H - 144 },
+            { x: 1300, y: H - 144 },
+            { x: 1800, y: H - 144 },
+            { x: 2300, y: H - 144 },
+            { x: 2800, y: H - 144 },
+            { x: 3300, y: H - 144 },
+            { x: 3800, y: H - 144 },
+          ],
+          coins: [
+            [400, H - 180],
+            [440, H - 200],
+            [480, H - 220],
+            [720, H - 220],
+            [760, H - 240],
+            [800, H - 220],
+            [1040, H - 200],
+            [1080, H - 220],
+            [1120, H - 200],
+            [1440, H - 240],
+            [1480, H - 260],
+            [1520, H - 240],
+            [1800, H - 180],
+            [1840, H - 200],
+            [1880, H - 180],
+            [2180, H - 220],
+            [2220, H - 240],
+            [2260, H - 220],
+            [2560, H - 200],
+            [2600, H - 220],
+            [2640, H - 200],
+            [2960, H - 240],
+            [3000, H - 260],
+            [3040, H - 240],
+            [3360, H - 180],
+            [3400, H - 200],
+            [3440, H - 180],
+            [3760, H - 220],
+            [3800, H - 240],
+            [3840, H - 220],
+            [4160, H - 200],
+            [4200, H - 220],
+            [4240, H - 200],
+          ],
+          goombas: [
+            { x: 600, y: H - 110 },
+            { x: 900, y: H - 110 },
+            { x: 1300, y: H - 110 },
+            { x: 1700, y: H - 110 },
+            { x: 2100, y: H - 110 },
+            { x: 2500, y: H - 110 },
+            { x: 2900, y: H - 110 },
+            { x: 3300, y: H - 110 },
+            { x: 3700, y: H - 110 },
+            { x: 4100, y: H - 110 },
+          ],
+          skateboards: [
+            { x: 600, y: H - 128 },
+            { x: 1800, y: H - 128 },
+            { x: 3200, y: H - 128 },
+          ],
+          flag: { x: 4500, y: H - 256 },
         },
       ];
 
@@ -1019,6 +1616,9 @@
         level.pipes = [];
         level.powerups = [];
         level.projectiles = [];
+        level.skateboards = [];
+        level.snowPiles = [];
+        level.icePillars = [];
         level.flag = null;
         levelCelebration.active = false;
         levelCelebration.papers = [];
@@ -1033,10 +1633,32 @@
 
         (definition.coins ?? []).forEach(([x, y]) => level.coins.push(new Coin(x, y)));
 
-        (definition.goombas ?? []).forEach(({ x, y }) => level.entities.push(new Goomba(x, y)));
+        // 第六关（water主题）使用Shark，第七关（climb主题）使用Monkey，其他关卡使用Goomba
+        (definition.goombas ?? []).forEach(({ x, y }) => {
+          if (definition.theme === "water") {
+            level.entities.push(new Shark(x, y));
+          } else if (definition.theme === "climb") {
+            level.entities.push(new Monkey(x, y));
+          } else {
+            level.entities.push(new Goomba(x, y));
+          }
+        });
 
-        (definition.pipes ?? []).forEach(({ x, y, width, height, warpTo }) =>
-          level.pipes.push(new Pipe(x, y, width, height, { warpTo })),
+        // 管道功能已禁用
+        // (definition.pipes ?? []).forEach(({ x, y, width, height, warpTo }) =>
+        //   level.pipes.push(new Pipe(x, y, width, height, { warpTo })),
+        // );
+
+        (definition.skateboards ?? []).forEach(({ x, y }) =>
+          level.skateboards.push(new Skateboard(x, y)),
+        );
+
+        (definition.snowPiles ?? []).forEach(({ x, y }) =>
+          level.snowPiles.push(new SnowPile(x, y)),
+        );
+
+        (definition.icePillars ?? []).forEach(({ x, y }) =>
+          level.icePillars.push(new IcePillar(x, y)),
         );
 
         if (definition.flag) {
@@ -1099,10 +1721,18 @@
         player.vy = 0;
         player.onGround = false;
         player.invincibleTimer = 0;
+        player.onSkateboard = false;
+        player.skateboardTimer = 0;
         elapsedTime = 0;
         running = true;
         hudWorld.textContent = definition.name ?? `1-${index + 1}`;
         hudTime.textContent = `${world.timeLimit}`.padStart(3, "0");
+
+        // 更新关卡选择器
+        const levelSelect = document.getElementById("level-select");
+        if (levelSelect) {
+          levelSelect.value = index.toString();
+        }
 
         if (definition.intro && showIntro) {
           showToast(definition.intro, 1800);
@@ -1121,34 +1751,21 @@
         }
       }
 
+      function restartCurrentLevel() {
+        if (currentLevelIndex < 0 || currentLevelIndex >= levelDefinitions.length) return;
+        const levelName = levelDefinitions[currentLevelIndex].name;
+        loadLevel(currentLevelIndex, { resetStats: false, showIntro: false, respawn: false });
+        showToast(`${levelName} restarted!`, 1200);
+      }
+
       function tryEnterPipe() {
-        if (!running) return false;
-        const pipe = level.pipes.find((pipe) => {
-          if (pipe.warpTo === undefined || pipe.warpTo === null) return false;
-          const overlapsHorizontally =
-            player.right > pipe.left + 8 && player.left < pipe.right - 8;
-          const nearTop =
-            player.bottom >= pipe.top - 6 && player.bottom <= pipe.top + 10;
-          return overlapsHorizontally && nearTop && Math.abs(player.vy) < 120 && player.onGround;
-        });
-        if (pipe) {
-          enterPipe(pipe);
-          return true;
-        }
+        // 管道功能已禁用
         return false;
       }
 
       function enterPipe(pipe) {
-        if (!running || pendingLevelTimer) return;
-        running = false;
-        player.vx = 0;
-        player.vy = 0;
-        showToast("Diving into the pipe...", 1200);
-        const target = pipe.warpTo ?? currentLevelIndex + 1;
-        pendingLevelTimer = setTimeout(() => {
-          pendingLevelTimer = null;
-          loadLevel(target);
-        }, 900);
+        // 管道功能已禁用
+        return;
       }
 
       function applyTheme(themeKey) {
@@ -1201,9 +1818,69 @@
             platformTop: "#ffd1dc",
             platformBody: "#ff9ec4",
           },
+          ghost: {
+            sky: ["#2d1b3d", "#1a0f26"],
+            isUnderground: true,
+            hillLight: null,
+            hillDark: null,
+            cloud: null,
+            groundTop: "#4a3a5a",
+            groundBody: "#3a2d4a",
+            groundStripe: "#2a1f3a",
+            platformTop: "#6b5b7b",
+            platformBody: "#5a4a6a",
+          },
+          water: {
+            sky: ["#1a4a6a", "#0d2d4a"],
+            isUnderground: true,
+            hillLight: null,
+            hillDark: null,
+            cloud: null,
+            groundTop: "#2d5a7a",
+            groundBody: "#1d3a5a",
+            groundStripe: "#0d2a4a",
+            platformTop: "#4d7a9a",
+            platformBody: "#3d6a8a",
+          },
+          climb: {
+            sky: ["#87ceeb", "#e0f6ff"],
+            isUnderground: false,
+            hillLight: "rgba(120, 120, 130, 0.8)",
+            hillDark: "rgba(100, 100, 110, 0.8)",
+            cloud: "#ffffff",
+            groundTop: "#8b7355",
+            groundBody: "#6b5a45",
+            groundStripe: "#5a4a35",
+            platformTop: "#9b8a6a",
+            platformBody: "#7b6a5a",
+          },
+          snow: {
+            sky: ["#b8d4f0", "#e8f4ff"],
+            isUnderground: false,
+            hillLight: "rgba(240, 240, 250, 0.9)",
+            hillDark: "rgba(220, 220, 230, 0.9)",
+            cloud: "#ffffff",
+            groundTop: "#f0f8ff",
+            groundBody: "#e0e8f0",
+            groundStripe: "#d0d8e0",
+            platformTop: "#ffffff",
+            platformBody: "#f0f0f8",
+          },
         };
         const selected = themes[themeKey] ?? themes.surface;
         activeTheme = { ...selected, key: themeKey };
+        
+        // 水下关卡调整重力
+        if (themeKey === "water") {
+          world.gravity = 600; // 水下重力更小
+          world.friction = 0.86; // 恢复正常摩擦力
+        } else if (themeKey === "snow") {
+          world.gravity = 1600; // 正常重力
+          world.friction = 0.92; // 滑雪场摩擦力更低（更滑）
+        } else {
+          world.gravity = 1600; // 恢复正常重力
+          world.friction = 0.86; // 恢复正常摩擦力
+        }
       }
 
       function completeLevel() {
@@ -1226,7 +1903,7 @@
       function handleCollisions() {
         player.onGround = false;
         const entities = [player, ...level.entities, ...level.powerups];
-        const colliders = [...level.platforms, ...level.bricks, ...level.pipes];
+        const colliders = [...level.platforms, ...level.bricks, ...level.skateboards, ...level.snowPiles, ...level.icePillars];
 
         entities.forEach((entity) => {
           colliders.forEach((platform) => {
@@ -1264,7 +1941,15 @@
                   }
                 }
                 entity.x += overlapX;
-                if (entity instanceof Goomba || entity instanceof Mushroom) {
+                if (entity instanceof Shark) {
+                  // 鲨鱼在水中遇到障碍时改变方向，但可以上下游动绕过
+                  entity.directionX *= -1;
+                  entity.vx = entity.directionX * entity.swimSpeedX;
+                  // 有时也改变垂直方向，尝试绕过障碍
+                  if (Math.random() > 0.5) {
+                    entity.directionY *= -1;
+                  }
+                } else if (entity instanceof Monkey || entity instanceof Goomba || entity instanceof Mushroom) {
                   entity.direction *= -1;
                   entity.vx = entity.direction * entity.walkSpeed;
                 } else {
@@ -1272,7 +1957,17 @@
                 }
               } else {
                 entity.y += overlapY;
-                entity.vy = 0;
+                if (entity instanceof Shark) {
+                  // 鲨鱼在水中遇到上下障碍时改变垂直方向
+                  entity.directionY *= -1;
+                  entity.vy = entity.directionY * entity.swimSpeedY;
+                } else if (entity instanceof Monkey) {
+                  // 猴子落地时设置onGround状态
+                  entity.vy = 0;
+                  entity.onGround = true;
+                } else {
+                  entity.vy = 0;
+                }
                 if (entity === player) {
                   if (overlapY < 0) {
                     player.onGround = true;
@@ -1289,7 +1984,7 @@
 
       function handleEntityInteractions(dt) {
         level.entities.forEach((entity) => {
-          if (entity instanceof Goomba && !entity.removed) {
+          if ((entity instanceof Goomba || entity instanceof Shark || entity instanceof Monkey) && !entity.removed) {
             if (
               player.right > entity.left &&
               player.left < entity.right &&
@@ -1300,7 +1995,13 @@
                 entity.squash();
                 player.bounce();
                 player.addScore(100);
-                showToast("Goomba squashed! +100 points!", 1000);
+                let message = "Goomba squashed! +100 points!";
+                if (entity instanceof Shark) {
+                  message = "Shark defeated! +100 points!";
+                } else if (entity instanceof Monkey) {
+                  message = "Monkey defeated! +100 points!";
+                }
+                showToast(message, 1000);
               } else if (player.invincibleTimer === 0) {
                 if (player.size === "big") {
                   player.setSize("small");
@@ -1314,8 +2015,8 @@
                   return;
                 } else {
                   running = false;
-                  showToast("Out of lives—returning to 1-1...", 1600);
-                  setTimeout(() => resetGame({ showMessage: true }), 180);
+                  showToast("Out of lives—restarting current level...", 1600);
+                  setTimeout(() => loadLevel(currentLevelIndex, { respawn: true, showIntro: false }), 180);
                   return;
                 }
               }
@@ -1327,7 +2028,7 @@
           if (fireball.life <= 0) return false;
           let hit = false;
           level.entities.forEach((entity) => {
-            if (entity instanceof Goomba && !entity.removed) {
+            if ((entity instanceof Goomba || entity instanceof Shark || entity instanceof Monkey) && !entity.removed) {
               const marginX = 18;
               const marginY = 18;
               const xOverlap =
@@ -1378,6 +2079,47 @@
         });
 
         level.coins = level.coins.filter((coin) => !coin.removed);
+
+        // 滑板收集
+        level.skateboards.forEach((skateboard) => {
+          if (
+            player.right > skateboard.left &&
+            player.left < skateboard.right &&
+            player.bottom > skateboard.top &&
+            player.top < skateboard.bottom
+          ) {
+            skateboard.removed = true;
+            player.onSkateboard = true;
+            player.skateboardTimer = 0;
+            player.addScore(500);
+            showToast("Skateboard collected! Dash through enemies!", 1600);
+          }
+        });
+
+        level.skateboards = level.skateboards.filter((skateboard) => !skateboard.removed);
+
+        // 滑板冲走敌人
+        if (player.onSkateboard && Math.abs(player.vx) > 200) {
+          level.entities.forEach((entity) => {
+            if ((entity instanceof Goomba || entity instanceof Shark || entity instanceof Monkey) && !entity.removed) {
+              const marginX = 30;
+              const marginY = 20;
+              const xOverlap =
+                player.right > entity.left - marginX &&
+                player.left < entity.right + marginX;
+              const yOverlap =
+                player.bottom > entity.top - marginY &&
+                player.top < entity.bottom + marginY;
+              if (xOverlap && yOverlap) {
+                // 冲走敌人
+                entity.removed = true;
+                entity.squash();
+                player.addScore(200);
+                showToast("Skateboard dash! Enemy knocked out!", 1000);
+              }
+            }
+          });
+        }
       }
 
       function update(dt) {
@@ -1395,8 +2137,8 @@
             return;
           }
           running = false;
-          showToast("Time’s up—returning to 1-1...", 1600);
-          setTimeout(() => resetGame({ showMessage: true }), 180);
+          showToast("Time's up—restarting current level...", 1600);
+          setTimeout(() => loadLevel(currentLevelIndex, { respawn: true, showIntro: false }), 180);
           return;
         }
 
@@ -1406,6 +2148,7 @@
         level.coins.forEach((coin) => coin.update(dt));
         level.powerups.forEach((powerup) => powerup.update(dt));
         level.projectiles.forEach((projectile) => projectile.update(dt));
+        level.skateboards.forEach((skateboard) => skateboard.update(dt));
         if (level.flag) {
           level.flag.update(dt);
         }
@@ -1439,8 +2182,8 @@
             return;
           }
           running = false;
-          showToast("Fell into the abyss—returning to 1-1...", 1600);
-          setTimeout(() => resetGame({ showMessage: true }), 180);
+          showToast("Fell into the abyss—restarting current level...", 1600);
+          setTimeout(() => loadLevel(currentLevelIndex, { respawn: true, showIntro: false }), 180);
           return;
         }
       }
@@ -1514,7 +2257,211 @@
             });
           }
 
-          if (activeTheme.cloud) {
+          if (activeTheme.key === "climb") {
+            // 攀岩主题：绘制高耸的山峰
+            const mountainPeaks = [
+              { x: 200, height: 180, width: 300 },
+              { x: 800, height: 220, width: 350 },
+              { x: 1500, height: 200, width: 320 },
+              { x: 2400, height: 240, width: 380 },
+              { x: 3200, height: 190, width: 310 },
+            ];
+            mountainPeaks.forEach((peak) => {
+              const mx = peak.x - cameraX;
+              if (mx + peak.width > -100 && mx < canvas.width + 100) {
+                ctx.save();
+                // 山峰主体
+                ctx.fillStyle = "rgba(100, 100, 110, 0.7)";
+                ctx.beginPath();
+                ctx.moveTo(mx, world.height - 64);
+                ctx.lineTo(mx + peak.width / 2, world.height - 64 - peak.height);
+                ctx.lineTo(mx + peak.width, world.height - 64);
+                ctx.closePath();
+                ctx.fill();
+                // 山峰阴影
+                ctx.fillStyle = "rgba(80, 80, 90, 0.5)";
+                ctx.beginPath();
+                ctx.moveTo(mx + peak.width / 2, world.height - 64 - peak.height);
+                ctx.lineTo(mx + peak.width, world.height - 64);
+                ctx.lineTo(mx + peak.width * 0.7, world.height - 64 - peak.height * 0.3);
+                ctx.closePath();
+                ctx.fill();
+                // 雪顶
+                ctx.fillStyle = "rgba(240, 240, 250, 0.9)";
+                ctx.beginPath();
+                ctx.moveTo(mx + peak.width / 2 - 20, world.height - 64 - peak.height);
+                ctx.lineTo(mx + peak.width / 2, world.height - 64 - peak.height - 15);
+                ctx.lineTo(mx + peak.width / 2 + 20, world.height - 64 - peak.height);
+                ctx.closePath();
+                ctx.fill();
+                // 岩石纹理
+                ctx.strokeStyle = "rgba(70, 70, 80, 0.4)";
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 3; i++) {
+                  const rockY = world.height - 64 - (peak.height / 4) * (i + 1);
+                  ctx.beginPath();
+                  ctx.moveTo(mx + peak.width * 0.2 + i * 20, rockY);
+                  ctx.lineTo(mx + peak.width * 0.8 - i * 20, rockY);
+                  ctx.stroke();
+                }
+                ctx.restore();
+              }
+            });
+            
+            // 攀岩点/抓手点
+            const climbingHolds = [
+              { x: 450, y: H - 240 },
+              { x: 750, y: H - 300 },
+              { x: 1050, y: H - 280 },
+              { x: 1450, y: H - 320 },
+              { x: 1850, y: H - 300 },
+              { x: 2250, y: H - 340 },
+              { x: 2650, y: H - 320 },
+              { x: 3050, y: H - 360 },
+              { x: 3450, y: H - 340 },
+              { x: 3850, y: H - 360 },
+            ];
+            climbingHolds.forEach((hold) => {
+              const hx = hold.x - cameraX;
+              if (hx > -30 && hx < canvas.width + 30) {
+                ctx.save();
+                ctx.fillStyle = "rgba(150, 150, 160, 0.8)";
+                ctx.strokeStyle = "rgba(120, 120, 130, 0.9)";
+                ctx.lineWidth = 2;
+                // 攀岩点主体
+                ctx.beginPath();
+                ctx.arc(hx, hold.y, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                // 高光
+                ctx.fillStyle = "rgba(200, 200, 210, 0.6)";
+                ctx.beginPath();
+                ctx.arc(hx - 3, hold.y - 3, 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+              }
+            });
+            
+            // 云朵（在较低位置）
+            if (activeTheme.cloud) {
+              ctx.fillStyle = activeTheme.cloud;
+              for (let i = 0; i < 12; i++) {
+                const x = (cameraX / 3 + i * 220) % (canvas.width + 220) - 220;
+                const y = 200 + Math.sin((Date.now() / 2500 + i) % Math.PI) * 15;
+                ctx.beginPath();
+                ctx.ellipse(x + 120, y, 100, 35, 0, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            }
+          } else if (activeTheme.key === "snow") {
+            // 滑雪场主题：绘制雪景
+            // 雪山背景
+            const snowMountains = [
+              { x: 100, height: 150, width: 280 },
+              { x: 600, height: 180, width: 320 },
+              { x: 1200, height: 160, width: 300 },
+              { x: 2000, height: 190, width: 340 },
+              { x: 2800, height: 170, width: 310 },
+              { x: 3600, height: 200, width: 330 },
+            ];
+            snowMountains.forEach((mountain) => {
+              const mx = mountain.x - cameraX;
+              if (mx + mountain.width > -100 && mx < canvas.width + 100) {
+                ctx.save();
+                // 雪山主体
+                ctx.fillStyle = "rgba(240, 240, 250, 0.8)";
+                ctx.beginPath();
+                ctx.moveTo(mx, world.height - 64);
+                ctx.lineTo(mx + mountain.width / 2, world.height - 64 - mountain.height);
+                ctx.lineTo(mx + mountain.width, world.height - 64);
+                ctx.closePath();
+                ctx.fill();
+                // 雪顶高光
+                ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+                ctx.beginPath();
+                ctx.moveTo(mx + mountain.width / 2 - 15, world.height - 64 - mountain.height);
+                ctx.lineTo(mx + mountain.width / 2, world.height - 64 - mountain.height - 10);
+                ctx.lineTo(mx + mountain.width / 2 + 15, world.height - 64 - mountain.height);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+              }
+            });
+            
+            // 雪人
+            const snowmanPositions = [
+              { x: 500, y: world.height - 120 },
+              { x: 1500, y: world.height - 115 },
+              { x: 3000, y: world.height - 125 },
+            ];
+            snowmanPositions.forEach((snowman) => {
+              const sx = snowman.x - cameraX;
+              if (sx > -80 && sx < canvas.width + 80) {
+                ctx.save();
+                ctx.translate(sx, snowman.y);
+                // 雪人身体（下）
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath();
+                ctx.arc(0, 0, 25, 0, Math.PI * 2);
+                ctx.fill();
+                // 雪人身体（中）
+                ctx.beginPath();
+                ctx.arc(0, -30, 20, 0, Math.PI * 2);
+                ctx.fill();
+                // 雪人头部
+                ctx.beginPath();
+                ctx.arc(0, -55, 15, 0, Math.PI * 2);
+                ctx.fill();
+                // 雪人眼睛
+                ctx.fillStyle = "#1a0f26";
+                ctx.beginPath();
+                ctx.arc(-5, -58, 2, 0, Math.PI * 2);
+                ctx.arc(5, -58, 2, 0, Math.PI * 2);
+                ctx.fill();
+                // 雪人鼻子（胡萝卜）
+                ctx.fillStyle = "#ff8c00";
+                ctx.beginPath();
+                ctx.moveTo(0, -55);
+                ctx.lineTo(8, -52);
+                ctx.lineTo(0, -50);
+                ctx.closePath();
+                ctx.fill();
+                // 雪人帽子
+                ctx.fillStyle = "#8b4513";
+                ctx.fillRect(-12, -70, 24, 8);
+                ctx.fillRect(-8, -75, 16, 5);
+                ctx.restore();
+              }
+            });
+            
+            // 雪花飘落效果
+            const snowflakeCount = 30;
+            for (let i = 0; i < snowflakeCount; i++) {
+              const snowX = (cameraX * 0.1 + i * 150) % (canvas.width + 150) - 150;
+              const snowY = (Date.now() / 20 + i * 50) % (canvas.height + 100) - 100;
+              const snowSize = 2 + Math.sin((Date.now() / 1000 + i) % (Math.PI * 2)) * 1;
+              
+              ctx.save();
+              ctx.globalAlpha = 0.8;
+              ctx.fillStyle = "#ffffff";
+              ctx.beginPath();
+              ctx.arc(snowX, snowY, snowSize, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+            }
+            
+            // 云朵
+            if (activeTheme.cloud) {
+              ctx.fillStyle = activeTheme.cloud;
+              for (let i = 0; i < 14; i++) {
+                const x = (cameraX / 4 + i * 200) % (canvas.width + 200) - 200;
+                const y = 100 + Math.sin((Date.now() / 3000 + i) % Math.PI) * 10;
+                ctx.beginPath();
+                ctx.ellipse(x + 100, y, 110, 38, 0, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            }
+          } else if (activeTheme.cloud) {
             ctx.fillStyle = activeTheme.cloud;
             for (let i = 0; i < 16; i++) {
               const x = (cameraX / 4 + i * 180) % (canvas.width + 180) - 180;
@@ -1532,24 +2479,337 @@
             }
           }
         } else {
-          ctx.fillStyle = "rgba(40, 36, 66, 0.6)";
-          for (let i = 0; i < 6; i++) {
-            const x = (cameraX / 6 + i * 240) % (canvas.width + 240) - 240;
-            ctx.fillRect(x + 40, canvas.height - 220, 200, 200);
-          }
-          ctx.strokeStyle = "rgba(120, 120, 200, 0.08)";
-          for (let y = 80; y < canvas.height; y += 60) {
+          if (activeTheme.key === "ghost") {
+            ctx.fillStyle = "rgba(60, 40, 80, 0.7)";
+            for (let i = 0; i < 8; i++) {
+              const x = (cameraX / 5 + i * 200) % (canvas.width + 200) - 200;
+              ctx.fillRect(x + 30, canvas.height - 240, 180, 220);
+            }
+            ctx.strokeStyle = "rgba(150, 100, 180, 0.12)";
+            for (let y = 60; y < canvas.height; y += 50) {
+              ctx.beginPath();
+              ctx.moveTo(0, y);
+              ctx.lineTo(canvas.width, y);
+              ctx.stroke();
+            }
+            ctx.strokeStyle = "rgba(150, 100, 180, 0.08)";
+            for (let x = 0; x < canvas.width; x += 70) {
+              ctx.beginPath();
+              ctx.moveTo(x, 0);
+              ctx.lineTo(x, canvas.height);
+              ctx.stroke();
+            }
+            
+            // 万圣节月亮
+            const moonX = canvas.width - 120 - cameraX * 0.1;
+            const moonY = 80;
+            ctx.fillStyle = "rgba(255, 240, 200, 0.4)";
             ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(canvas.width, y);
-            ctx.stroke();
-          }
-          ctx.strokeStyle = "rgba(120, 120, 200, 0.05)";
-          for (let x = 0; x < canvas.width; x += 80) {
+            ctx.arc(moonX, moonY, 45, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "rgba(255, 220, 150, 0.3)";
             ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, canvas.height);
-            ctx.stroke();
+            ctx.arc(moonX - 15, moonY - 10, 35, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 蝙蝠
+            for (let i = 0; i < 6; i++) {
+              const batX = (cameraX * 0.3 + i * 350) % (canvas.width + 350) - 350;
+              const batY = 100 + Math.sin((Date.now() / 800 + i) % (Math.PI * 2)) * 25;
+              ctx.save();
+              ctx.translate(batX, batY);
+              ctx.fillStyle = "rgba(20, 20, 30, 0.8)";
+              // 蝙蝠身体
+              ctx.beginPath();
+              ctx.ellipse(0, 0, 8, 12, 0, 0, Math.PI * 2);
+              ctx.fill();
+              // 蝙蝠翅膀
+              ctx.beginPath();
+              ctx.ellipse(-12, -4, 10, 6, -0.3, 0, Math.PI * 2);
+              ctx.ellipse(12, -4, 10, 6, 0.3, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+            }
+            
+            // 墓碑
+            const tombstonePositions = [
+              { x: 500, y: world.height - 120 },
+              { x: 1200, y: world.height - 110 },
+              { x: 2100, y: world.height - 125 },
+              { x: 3000, y: world.height - 115 },
+            ];
+            tombstonePositions.forEach((tomb) => {
+              const tx = tomb.x - cameraX;
+              if (tx > -100 && tx < canvas.width + 100) {
+                ctx.fillStyle = "rgba(120, 120, 130, 0.7)";
+                // 墓碑顶部（弧形）
+                ctx.beginPath();
+                ctx.arc(tx, tomb.y - 25, 20, Math.PI, 0, false);
+                ctx.fill();
+                // 墓碑主体
+                ctx.fillRect(tx - 20, tomb.y - 25, 40, 50);
+                // 十字架
+                ctx.fillStyle = "rgba(80, 80, 90, 0.8)";
+                ctx.fillRect(tx - 2, tomb.y - 35, 4, 15);
+                ctx.fillRect(tx - 6, tomb.y - 30, 12, 4);
+                // RIP文字
+                ctx.fillStyle = "rgba(40, 40, 50, 0.9)";
+                ctx.font = "bold 10px Nunito";
+                ctx.textAlign = "center";
+                ctx.fillText("RIP", tx, tomb.y - 5);
+              }
+            });
+            
+            // 南瓜灯
+            const pumpkinPositions = [
+              { x: 800, y: world.height - 100 },
+              { x: 1600, y: world.height - 95 },
+              { x: 2500, y: world.height - 105 },
+              { x: 3400, y: world.height - 100 },
+            ];
+            pumpkinPositions.forEach((pumpkin) => {
+              const px = pumpkin.x - cameraX;
+              if (px > -80 && px < canvas.width + 80) {
+                ctx.save();
+                ctx.translate(px, pumpkin.y);
+                // 南瓜主体
+                ctx.fillStyle = "#ff8c00";
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 30, 35, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // 南瓜条纹
+                ctx.strokeStyle = "#ff6b00";
+                ctx.lineWidth = 3;
+                for (let i = -1; i <= 1; i++) {
+                  ctx.beginPath();
+                  ctx.moveTo(i * 10, -35);
+                  ctx.lineTo(i * 10, 35);
+                  ctx.stroke();
+                }
+                // 南瓜眼睛
+                ctx.fillStyle = "#1a0f26";
+                ctx.beginPath();
+                ctx.arc(-10, -8, 6, 0, Math.PI * 2);
+                ctx.arc(10, -8, 6, 0, Math.PI * 2);
+                ctx.fill();
+                // 南瓜嘴巴
+                ctx.beginPath();
+                ctx.arc(0, 8, 12, 0, Math.PI, false);
+                ctx.fill();
+                // 南瓜牙齿
+                ctx.fillStyle = "#ff8c00";
+                ctx.fillRect(-3, 8, 6, 4);
+                // 南瓜茎
+                ctx.fillStyle = "#2d5016";
+                ctx.fillRect(-4, -38, 8, 8);
+                ctx.restore();
+              }
+            });
+            
+            // 蜘蛛网
+            const webPositions = [
+              { x: 600, y: 150 },
+              { x: 1800, y: 140 },
+              { x: 2700, y: 160 },
+            ];
+            webPositions.forEach((web) => {
+              const wx = web.x - cameraX;
+              if (wx > -100 && wx < canvas.width + 100) {
+                ctx.save();
+                ctx.translate(wx, web.y);
+                ctx.strokeStyle = "rgba(200, 200, 220, 0.4)";
+                ctx.lineWidth = 1.5;
+                // 蜘蛛网辐射线
+                for (let i = 0; i < 8; i++) {
+                  const angle = (Math.PI * 2 * i) / 8;
+                  ctx.beginPath();
+                  ctx.moveTo(0, 0);
+                  ctx.lineTo(Math.cos(angle) * 40, Math.sin(angle) * 40);
+                  ctx.stroke();
+                }
+                // 蜘蛛网螺旋
+                for (let r = 8; r <= 40; r += 8) {
+                  ctx.beginPath();
+                  ctx.arc(0, 0, r, 0, Math.PI * 2);
+                  ctx.stroke();
+                }
+                ctx.restore();
+              }
+            });
+            
+            // 飘浮的幽灵（背景）
+            ctx.fillStyle = "rgba(200, 150, 220, 0.15)";
+            for (let i = 0; i < 4; i++) {
+              const ghostX = (cameraX / 3 + i * 400) % (canvas.width + 400) - 400;
+              const ghostY = 120 + Math.sin((Date.now() / 1500 + i * 0.8) % (Math.PI * 2)) * 30;
+              ctx.beginPath();
+              ctx.arc(ghostX + 200, ghostY, 18, Math.PI, 0, false);
+              ctx.lineTo(ghostX + 200 - 18, ghostY + 20);
+              ctx.quadraticCurveTo(ghostX + 200 - 12, ghostY + 15, ghostX + 200 - 6, ghostY + 18);
+              ctx.quadraticCurveTo(ghostX + 200, ghostY + 15, ghostX + 200 + 6, ghostY + 18);
+              ctx.quadraticCurveTo(ghostX + 200 + 12, ghostY + 15, ghostX + 200 + 18, ghostY + 20);
+              ctx.closePath();
+              ctx.fill();
+              // 眼睛
+              ctx.fillStyle = "rgba(40, 20, 60, 0.6)";
+              ctx.beginPath();
+              ctx.arc(ghostX + 200 - 6, ghostY - 2, 3, 0, Math.PI * 2);
+              ctx.arc(ghostX + 200 + 6, ghostY - 2, 3, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = "rgba(200, 150, 220, 0.15)";
+            }
+          } else if (activeTheme.key === "water") {
+            // 水下场景背景
+            ctx.fillStyle = "rgba(30, 60, 90, 0.5)";
+            for (let i = 0; i < 10; i++) {
+              const x = (cameraX / 4 + i * 150) % (canvas.width + 150) - 150;
+              ctx.fillRect(x + 20, canvas.height - 250, 130, 250);
+            }
+            
+            // 水波纹效果
+            ctx.strokeStyle = "rgba(100, 180, 255, 0.2)";
+            ctx.lineWidth = 2;
+            for (let y = 50; y < canvas.height; y += 80) {
+              const waveOffset = Math.sin((Date.now() / 1000 + y * 0.01) % (Math.PI * 2)) * 15;
+              ctx.beginPath();
+              for (let x = 0; x < canvas.width; x += 5) {
+                const waveY = y + Math.sin((x + cameraX) * 0.02 + Date.now() / 800) * 8 + waveOffset;
+                if (x === 0) {
+                  ctx.moveTo(x, waveY);
+                } else {
+                  ctx.lineTo(x, waveY);
+                }
+              }
+              ctx.stroke();
+            }
+            
+            // 气泡效果
+            const bubbleCount = 15;
+            for (let i = 0; i < bubbleCount; i++) {
+              const bubbleX = (cameraX * 0.2 + i * 200) % (canvas.width + 200) - 200;
+              const bubbleY = canvas.height - 100 - (Date.now() / 50 + i * 100) % (canvas.height - 200);
+              const bubbleSize = 4 + Math.sin((Date.now() / 500 + i) % (Math.PI * 2)) * 2;
+              
+              ctx.save();
+              ctx.globalAlpha = 0.4;
+              ctx.fillStyle = "rgba(200, 240, 255, 0.6)";
+              ctx.strokeStyle = "rgba(150, 220, 255, 0.8)";
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.arc(bubbleX, bubbleY, bubbleSize, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.stroke();
+              // 气泡高光
+              ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+              ctx.beginPath();
+              ctx.arc(bubbleX - bubbleSize * 0.3, bubbleY - bubbleSize * 0.3, bubbleSize * 0.3, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+            }
+            
+            // 水草/海草
+            const seaweedPositions = [
+              { x: 300, height: 80 },
+              { x: 900, height: 100 },
+              { x: 1500, height: 70 },
+              { x: 2100, height: 90 },
+              { x: 2700, height: 85 },
+              { x: 3300, height: 95 },
+            ];
+            seaweedPositions.forEach((seaweed) => {
+              const sx = seaweed.x - cameraX;
+              if (sx > -50 && sx < canvas.width + 50) {
+                ctx.save();
+                ctx.strokeStyle = "rgba(50, 150, 80, 0.6)";
+                ctx.lineWidth = 4;
+                ctx.lineCap = "round";
+                const sway = Math.sin((Date.now() / 1200 + seaweed.x * 0.01) % (Math.PI * 2)) * 12;
+                ctx.beginPath();
+                ctx.moveTo(sx, world.height - 64);
+                for (let i = 0; i < 8; i++) {
+                  const segmentY = world.height - 64 - (seaweed.height / 8) * i;
+                  const segmentX = sx + sway * (i / 8);
+                  ctx.lineTo(segmentX, segmentY);
+                }
+                ctx.stroke();
+                // 海草叶子
+                ctx.fillStyle = "rgba(40, 130, 70, 0.7)";
+                for (let i = 2; i < 7; i++) {
+                  const leafY = world.height - 64 - (seaweed.height / 8) * i;
+                  const leafX = sx + sway * (i / 8);
+                  ctx.beginPath();
+                  ctx.ellipse(leafX + (i % 2 === 0 ? 8 : -8), leafY, 6, 12, (i % 2 === 0 ? 0.3 : -0.3), 0, Math.PI * 2);
+                  ctx.fill();
+                }
+                ctx.restore();
+              }
+            });
+            
+            // 鱼类
+            for (let i = 0; i < 5; i++) {
+              const fishX = (cameraX * 0.5 + i * 500) % (canvas.width + 500) - 500;
+              const fishY = 150 + Math.sin((Date.now() / 2000 + i) % (Math.PI * 2)) * 50;
+              const fishDirection = i % 2 === 0 ? 1 : -1;
+              
+              ctx.save();
+              ctx.translate(fishX, fishY);
+              ctx.scale(fishDirection, 1);
+              // 鱼身体
+              ctx.fillStyle = "rgba(255, 150, 50, 0.7)";
+              ctx.beginPath();
+              ctx.ellipse(0, 0, 20, 12, 0, 0, Math.PI * 2);
+              ctx.fill();
+              // 鱼尾
+              ctx.beginPath();
+              ctx.moveTo(-20, 0);
+              ctx.lineTo(-30, -8);
+              ctx.lineTo(-25, 0);
+              ctx.lineTo(-30, 8);
+              ctx.closePath();
+              ctx.fill();
+              // 鱼眼睛
+              ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+              ctx.beginPath();
+              ctx.arc(8, -4, 4, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+              ctx.beginPath();
+              ctx.arc(9, -4, 2, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+            }
+            
+            // 水下光线效果
+            ctx.fillStyle = "rgba(100, 200, 255, 0.1)";
+            for (let i = 0; i < 3; i++) {
+              const lightX = (cameraX * 0.1 + i * 400) % (canvas.width + 400) - 400;
+              ctx.beginPath();
+              ctx.moveTo(lightX + 200, 0);
+              ctx.lineTo(lightX + 180, canvas.height);
+              ctx.lineTo(lightX + 220, canvas.height);
+              ctx.closePath();
+              ctx.fill();
+            }
+          } else {
+            ctx.fillStyle = "rgba(40, 36, 66, 0.6)";
+            for (let i = 0; i < 6; i++) {
+              const x = (cameraX / 6 + i * 240) % (canvas.width + 240) - 240;
+              ctx.fillRect(x + 40, canvas.height - 220, 200, 200);
+            }
+            ctx.strokeStyle = "rgba(120, 120, 200, 0.08)";
+            for (let y = 80; y < canvas.height; y += 60) {
+              ctx.beginPath();
+              ctx.moveTo(0, y);
+              ctx.lineTo(canvas.width, y);
+              ctx.stroke();
+            }
+            ctx.strokeStyle = "rgba(120, 120, 200, 0.05)";
+            for (let x = 0; x < canvas.width; x += 80) {
+              ctx.beginPath();
+              ctx.moveTo(x, 0);
+              ctx.lineTo(x, canvas.height);
+              ctx.stroke();
+            }
           }
         }
       }
@@ -1594,12 +2854,32 @@
           const x = pipe.x - world.camera.x;
           if (x + pipe.width < -64 || x > canvas.width + 64) return;
           const isCandy = activeTheme.key === "candy";
-          const bodyColor = activeTheme.isUnderground
+          const isGhost = activeTheme.key === "ghost";
+          const isWater = activeTheme.key === "water";
+          const isClimb = activeTheme.key === "climb";
+          const isSnow = activeTheme.key === "snow";
+          const bodyColor = isWater
+            ? "#3d6a8a"
+            : isGhost
+            ? "#6b5b7b"
+            : isClimb
+            ? "#7b6a5a"
+            : isSnow
+            ? "#d0d8e0"
+            : activeTheme.isUnderground
             ? "#4f6ed8"
             : isCandy
             ? "#ff80ab"
             : "#2dac4a";
-          const topColor = activeTheme.isUnderground
+          const topColor = isWater
+            ? "#5d8aaa"
+            : isGhost
+            ? "#8b7b9b"
+            : isClimb
+            ? "#9b8a6a"
+            : isSnow
+            ? "#f0f0f8"
+            : activeTheme.isUnderground
             ? "#6f8df0"
             : isCandy
             ? "#ffc2d7"
@@ -1697,6 +2977,100 @@
           ctx.fill();
           ctx.fillStyle = "#8d5524";
           ctx.fillRect(-12, 4, 24, 12);
+          ctx.restore();
+        });
+      }
+
+      function drawSkateboards() {
+        level.skateboards.forEach((skateboard) => {
+          const x = skateboard.x - world.camera.x;
+          if (x + skateboard.width < -64 || x > canvas.width + 64) return;
+          ctx.save();
+          ctx.translate(x + skateboard.width / 2, skateboard.y + skateboard.height / 2);
+          ctx.rotate(skateboard.rotation);
+          // 滑板板面
+          ctx.fillStyle = "#8b4513";
+          ctx.fillRect(-25, -6, 50, 12);
+          // 滑板轮子
+          ctx.fillStyle = "#2c2c2c";
+          ctx.beginPath();
+          ctx.arc(-18, 0, 5, 0, Math.PI * 2);
+          ctx.arc(-6, 0, 5, 0, Math.PI * 2);
+          ctx.arc(6, 0, 5, 0, Math.PI * 2);
+          ctx.arc(18, 0, 5, 0, Math.PI * 2);
+          ctx.fill();
+          // 轮子高光
+          ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+          ctx.beginPath();
+          ctx.arc(-18, -2, 2, 0, Math.PI * 2);
+          ctx.arc(-6, -2, 2, 0, Math.PI * 2);
+          ctx.arc(6, -2, 2, 0, Math.PI * 2);
+          ctx.arc(18, -2, 2, 0, Math.PI * 2);
+          ctx.fill();
+          // 滑板装饰
+          ctx.strokeStyle = "#654321";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(-20, 0);
+          ctx.lineTo(20, 0);
+          ctx.stroke();
+          ctx.restore();
+        });
+      }
+
+      function drawSnowPiles() {
+        level.snowPiles.forEach((pile) => {
+          const x = pile.x - world.camera.x;
+          if (x + pile.width < -64 || x > canvas.width + 64) return;
+          ctx.save();
+          // 雪堆主体（椭圆形）
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.ellipse(x + pile.width / 2, pile.y + pile.height / 2, pile.width / 2, pile.height / 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+          // 雪堆高光
+          ctx.fillStyle = "rgba(240, 248, 255, 0.8)";
+          ctx.beginPath();
+          ctx.ellipse(x + pile.width / 2 - 8, pile.y + pile.height / 2 - 8, pile.width / 3, pile.height / 3, 0, 0, Math.PI * 2);
+          ctx.fill();
+          // 雪堆阴影
+          ctx.fillStyle = "rgba(200, 220, 240, 0.4)";
+          ctx.beginPath();
+          ctx.ellipse(x + pile.width / 2 + 5, pile.y + pile.height / 2 + 5, pile.width / 2.5, pile.height / 2.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+      }
+
+      function drawIcePillars() {
+        level.icePillars.forEach((pillar) => {
+          const x = pillar.x - world.camera.x;
+          if (x + pillar.width < -64 || x > canvas.width + 64) return;
+          ctx.save();
+          // 冰柱主体
+          ctx.fillStyle = "rgba(200, 240, 255, 0.7)";
+          ctx.fillRect(x, pillar.y, pillar.width, pillar.height);
+          // 冰柱高光
+          ctx.fillStyle = "rgba(240, 250, 255, 0.9)";
+          ctx.fillRect(x + 4, pillar.y + 4, pillar.width - 8, 12);
+          // 冰柱纹理
+          ctx.strokeStyle = "rgba(150, 220, 255, 0.5)";
+          ctx.lineWidth = 2;
+          for (let i = 0; i < 4; i++) {
+            const y = pillar.y + 20 + i * 15;
+            ctx.beginPath();
+            ctx.moveTo(x + 6, y);
+            ctx.lineTo(x + pillar.width - 6, y);
+            ctx.stroke();
+          }
+          // 冰柱顶部
+          ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+          ctx.beginPath();
+          ctx.moveTo(x, pillar.y);
+          ctx.lineTo(x + pillar.width / 2, pillar.y - 8);
+          ctx.lineTo(x + pillar.width, pillar.y);
+          ctx.closePath();
+          ctx.fill();
           ctx.restore();
         });
       }
@@ -1812,37 +3186,290 @@
         ctx.quadraticCurveTo(24, 28, 30, 22);
         ctx.stroke();
 
+        // 如果玩家在滑板上，绘制滑板
+        if (player.onSkateboard) {
+          ctx.save();
+          ctx.translate(0, baseHeight - 6);
+          // 滑板板面
+          ctx.fillStyle = "#8b4513";
+          ctx.fillRect(-25, -6, 50, 12);
+          // 滑板轮子
+          ctx.fillStyle = "#2c2c2c";
+          ctx.beginPath();
+          ctx.arc(-18, 0, 5, 0, Math.PI * 2);
+          ctx.arc(-6, 0, 5, 0, Math.PI * 2);
+          ctx.arc(6, 0, 5, 0, Math.PI * 2);
+          ctx.arc(18, 0, 5, 0, Math.PI * 2);
+          ctx.fill();
+          // 轮子高光
+          ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+          ctx.beginPath();
+          ctx.arc(-18, -2, 2, 0, Math.PI * 2);
+          ctx.arc(-6, -2, 2, 0, Math.PI * 2);
+          ctx.arc(6, -2, 2, 0, Math.PI * 2);
+          ctx.arc(18, -2, 2, 0, Math.PI * 2);
+          ctx.fill();
+          // 滑板装饰
+          ctx.strokeStyle = "#654321";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(-20, 0);
+          ctx.lineTo(20, 0);
+          ctx.stroke();
+          ctx.restore();
+        }
+
         ctx.restore();
       }
 
       function drawGoombas() {
         level.entities.forEach((entity) => {
-          if (!(entity instanceof Goomba)) return;
+          if (!(entity instanceof Goomba || entity instanceof Shark || entity instanceof Monkey)) return;
           const x = entity.x - world.camera.x;
           if (x + entity.width < -64 || x > canvas.width + 64) return;
           ctx.save();
           ctx.translate(x + entity.width / 2, entity.y + entity.height);
-          ctx.scale(entity.state === "squashed" ? 1 : 1, entity.state === "squashed" ? 0.3 : 1);
+          
+          if (entity instanceof Shark) {
+            // 绘制鲨鱼
+            // 先应用方向翻转（鲨鱼默认面向右侧，directionX为-1时向左移动，需要翻转）
+            const direction = entity.directionX > 0 ? 1 : -1;
+            ctx.scale(direction, 1);
+            // 然后应用压扁效果
+            ctx.scale(1, entity.state === "squashed" ? 0.3 : 1);
+            
+            // 绘制鲨鱼身体（椭圆形，身体中心偏右）
+            ctx.fillStyle = entity.state === "squashed" ? "#4a5568" : "#5a6c7d";
+            ctx.beginPath();
+            ctx.ellipse(2, -18, 22, 16, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 鲨鱼头部（尖锐的嘴巴在右侧）
+            ctx.beginPath();
+            ctx.moveTo(18, -18);
+            ctx.lineTo(26, -12);
+            ctx.lineTo(24, -6);
+            ctx.lineTo(16, -8);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 鲨鱼嘴巴（张开的嘴巴）
+            ctx.fillStyle = "#1a1a2e";
+            ctx.beginPath();
+            ctx.arc(22, -10, 7, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 牙齿（锋利的牙齿）
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.moveTo(18, -12);
+            ctx.lineTo(20, -8);
+            ctx.lineTo(22, -10);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(22, -10);
+            ctx.lineTo(24, -8);
+            ctx.lineTo(26, -12);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 眼睛（在身体左侧）
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.arc(-6, -20, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#000000";
+            ctx.beginPath();
+            ctx.arc(-6, -20, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.arc(-5, -21, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 背鳍（在身体上方）
+            ctx.fillStyle = entity.state === "squashed" ? "#3d4a5c" : "#4a5c6d";
+            ctx.beginPath();
+            ctx.moveTo(0, -30);
+            ctx.lineTo(0, -24);
+            ctx.lineTo(-6, -26);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 侧鳍（在身体下方左侧）
+            ctx.beginPath();
+            ctx.moveTo(-10, -14);
+            ctx.lineTo(-14, -10);
+            ctx.lineTo(-12, -6);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 尾巴（会摆动）
+            if (entity.state !== "squashed") {
+              const tailOffset = Math.sin(entity.animationTimer * 8) * 2;
+              ctx.beginPath();
+              ctx.moveTo(-18, -18);
+              ctx.lineTo(-24 + tailOffset, -22);
+              ctx.lineTo(-22 + tailOffset, -14);
+              ctx.closePath();
+              ctx.fill();
+            }
+          } else if (entity instanceof Monkey) {
+            // 绘制猴子
+            ctx.scale(entity.state === "squashed" ? 1 : 1, entity.state === "squashed" ? 0.3 : 1);
+            
+            // 猴子身体（棕色）
+            ctx.fillStyle = entity.state === "squashed" ? "#8b6f47" : "#a67c52";
+            ctx.beginPath();
+            ctx.ellipse(0, -18, 18, 20, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 猴子头部（圆形，稍微向上）
+            ctx.fillStyle = entity.state === "squashed" ? "#8b6f47" : "#a67c52";
+            ctx.beginPath();
+            ctx.arc(0, -32, 14, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 猴子脸部（浅棕色）
+            ctx.fillStyle = "#d4a574";
+            ctx.beginPath();
+            ctx.ellipse(0, -30, 10, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 猴子眼睛
+            ctx.fillStyle = "#000000";
+            ctx.beginPath();
+            ctx.arc(-5, -32, 2.5, 0, Math.PI * 2);
+            ctx.arc(5, -32, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 眼睛高光
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.arc(-4, -33, 1, 0, Math.PI * 2);
+            ctx.arc(6, -33, 1, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 猴子鼻子（小三角形）
+            ctx.fillStyle = "#8b6f47";
+            ctx.beginPath();
+            ctx.moveTo(0, -28);
+            ctx.lineTo(-3, -26);
+            ctx.lineTo(3, -26);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 猴子嘴巴
+            ctx.strokeStyle = "#8b6f47";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(0, -24, 4, 0, Math.PI);
+            ctx.stroke();
+            
+            // 猴子手臂（根据跳跃状态调整位置）
+            const armOffset = entity.onGround ? 0 : Math.sin(entity.animationTimer * 8) * 5;
+            ctx.fillStyle = entity.state === "squashed" ? "#8b6f47" : "#a67c52";
+            // 左手臂
+            ctx.beginPath();
+            ctx.ellipse(-14 + armOffset, -16, 6, 12, -0.3, 0, Math.PI * 2);
+            ctx.fill();
+            // 右手臂
+            ctx.beginPath();
+            ctx.ellipse(14 - armOffset, -16, 6, 12, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 猴子腿
+            ctx.fillStyle = entity.state === "squashed" ? "#8b6f47" : "#a67c52";
+            ctx.fillRect(-10, -4, 8, 14);
+            ctx.fillRect(2, -4, 8, 14);
+            
+            // 猴子尾巴（会摆动）
+            if (entity.state !== "squashed") {
+              const tailOffset = Math.sin(entity.animationTimer * 6) * 8;
+              ctx.strokeStyle = entity.state === "squashed" ? "#8b6f47" : "#a67c52";
+              ctx.lineWidth = 4;
+              ctx.beginPath();
+              ctx.moveTo(-12, -8);
+              ctx.quadraticCurveTo(-18 + tailOffset, -12, -20 + tailOffset, -4);
+              ctx.stroke();
+            }
+          } else {
+            // 绘制Goomba
+            const isGhost = activeTheme && activeTheme.key === "ghost";
+            
+            if (isGhost) {
+              // 绘制幽灵形象
+              ctx.scale(entity.state === "squashed" ? 1 : 1, entity.state === "squashed" ? 0.3 : 1);
+              
+              // 幽灵主体 - 半透明白色/淡紫色
+              ctx.globalAlpha = 0.85;
+              ctx.fillStyle = entity.state === "squashed" ? "rgba(220, 200, 255, 0.6)" : "rgba(240, 230, 255, 0.9)";
+              
+              // 绘制幽灵身体（上半部分圆形，下半部分波浪形）
+              ctx.beginPath();
+              // 从左边开始画半圆（上半部分）
+              ctx.arc(0, -25, 18, Math.PI, 0, false);
+              
+              // 波浪形底部（从右到左）
+              const waveOffset = entity.state === "squashed" ? 0 : Math.sin((Date.now() / 300 + entity.x * 0.01) % (Math.PI * 2)) * 3;
+              const baseY = -10;
+              ctx.lineTo(18, baseY + waveOffset);
+              ctx.quadraticCurveTo(12, baseY - 3 + waveOffset, 6, baseY + waveOffset);
+              ctx.quadraticCurveTo(0, baseY - 3 + waveOffset, -6, baseY + waveOffset);
+              ctx.quadraticCurveTo(-12, baseY - 3 + waveOffset, -18, baseY + waveOffset);
+              ctx.closePath();
+              ctx.fill();
+              
+              // 幽灵眼睛
+              ctx.globalAlpha = 1;
+              ctx.fillStyle = "#1a0f26";
+              ctx.beginPath();
+              ctx.arc(-8, -22, 4, 0, Math.PI * 2);
+              ctx.arc(8, -22, 4, 0, Math.PI * 2);
+              ctx.fill();
+              
+              // 眼睛高光
+              ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+              ctx.beginPath();
+              ctx.arc(-7, -23, 1.5, 0, Math.PI * 2);
+              ctx.arc(9, -23, 1.5, 0, Math.PI * 2);
+              ctx.fill();
+              
+              // 幽灵外发光效果
+              if (entity.state !== "squashed") {
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = "rgba(200, 150, 255, 0.6)";
+                ctx.strokeStyle = "rgba(200, 150, 255, 0.4)";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+              }
+            } else {
+              // 原来的Goomba形象
+              ctx.scale(entity.state === "squashed" ? 1 : 1, entity.state === "squashed" ? 0.3 : 1);
 
-          ctx.fillStyle = "#a45c2a";
-          ctx.beginPath();
-          ctx.ellipse(0, -20, 20, 24, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillRect(-22, -26, 44, 20);
+              ctx.fillStyle = "#a45c2a";
+              ctx.beginPath();
+              ctx.ellipse(0, -20, 20, 24, 0, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillRect(-22, -26, 44, 20);
 
-          ctx.fillStyle = "#fdf4ed";
-          ctx.fillRect(-14, -32, 12, 16);
-          ctx.fillRect(2, -32, 12, 16);
-          ctx.fillStyle = "#2c2c2c";
-          ctx.beginPath();
-          ctx.arc(-8, -24, 4, 0, Math.PI * 2);
-          ctx.arc(8, -24, 4, 0, Math.PI * 2);
-          ctx.fill();
+              ctx.fillStyle = "#fdf4ed";
+              ctx.fillRect(-14, -32, 12, 16);
+              ctx.fillRect(2, -32, 12, 16);
+              ctx.fillStyle = "#2c2c2c";
+              ctx.beginPath();
+              ctx.arc(-8, -24, 4, 0, Math.PI * 2);
+              ctx.arc(8, -24, 4, 0, Math.PI * 2);
+              ctx.fill();
 
-          ctx.fillStyle = "#5d3d20";
-          ctx.fillRect(-18, -6, 12, 16);
-          ctx.fillRect(6, -6, 12, 16);
-
+              ctx.fillStyle = "#5d3d20";
+              ctx.fillRect(-18, -6, 12, 16);
+              ctx.fillRect(6, -6, 12, 16);
+            }
+          }
+          
           ctx.restore();
         });
       }
@@ -1870,11 +3497,13 @@
       function draw() {
         drawBackground();
         drawGround();
-        drawPipes();
         drawPlatforms();
         drawBricks();
         drawCoins();
         drawMushrooms();
+        drawSkateboards();
+        drawSnowPiles();
+        drawIcePillars();
         levelCelebration.draw();
         drawFireballs();
         drawFlag();
@@ -1915,12 +3544,13 @@
           }
           return;
         }
-        if (code === "ArrowDown" || code === "KeyS") {
-          if (tryEnterPipe()) {
-            event.preventDefault();
-            return;
-          }
-        }
+        // 管道功能已禁用
+        // if (code === "ArrowDown" || code === "KeyS") {
+        //   if (tryEnterPipe()) {
+        //     event.preventDefault();
+        //     return;
+        //   }
+        // }
         keyState.add(code);
       });
 
@@ -1931,6 +3561,25 @@
       window.addEventListener("blur", () => {
         keyState.clear();
       });
+
+      const restartButton = document.getElementById("restart-current-level");
+      if (restartButton) {
+        restartButton.addEventListener("click", () => {
+          restartCurrentLevel();
+        });
+      }
+
+      const levelSelect = document.getElementById("level-select");
+      if (levelSelect) {
+        levelSelect.addEventListener("change", (event) => {
+          const selectedLevel = parseInt(event.target.value, 10);
+          if (!isNaN(selectedLevel) && selectedLevel >= 0 && selectedLevel < levelDefinitions.length) {
+            resetGame({ showMessage: true, startLevel: selectedLevel });
+            levelSelect.value = selectedLevel.toString();
+          }
+        });
+      }
+
 
       resetGame({ showMessage: false, startLevel: 2 });
       requestAnimationFrame(loop);
