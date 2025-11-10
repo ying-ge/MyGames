@@ -261,7 +261,7 @@
           </div>
         </div>
         <div class="notice" role="note">
-          <strong>提示：</strong> 跳到 Goomba 头上即可踩扁它们，撞击“？”砖块或收集图稿累计 10 份可获得 1 发科研火焰，蘑菇可提升身形或增加生命，冲线后会有 CNS 火山喷发表演！
+          <strong>提示：</strong> 跳到 Goomba 头上即可踩扁它们，撞击“？”砖块或收集图稿累计 10 份可获得 1 发科研火焰，蘑菇可提升身形或增加生命，终点糖果屋将举行 CNS 烟花庆典！
         </div>
         <div class="canvas-wrapper">
           <canvas
@@ -318,6 +318,8 @@
         goalX: 3300,
         timeLimit: 300,
       };
+
+      let activeTheme = null;
 
       const keyState = new Set();
 
@@ -674,9 +676,12 @@
         update(dt) {
           if (!this.active) return;
           this.timer += dt;
-          const interval = 0.22;
-          const burstSize = 12;
-          const labels = ["Cell", "Nature", "Science"];
+          const interval = activeTheme && activeTheme.key === "candy" ? 0.18 : 0.22;
+          const burstSize = activeTheme && activeTheme.key === "candy" ? 18 : 12;
+          const labels =
+            activeTheme && activeTheme.key === "candy"
+              ? ["C", "N", "S", "Impact"]
+              : ["Cell", "Nature", "Science"];
           const flag = level.flag;
           if (flag) {
             this.origin = { x: flag.x, y: flag.y - 32 };
@@ -723,7 +728,8 @@
             ctx.fillRect(-width / 2, -height / 2, width, height);
             ctx.strokeStyle = "#d1d1d1";
             ctx.strokeRect(-width / 2, -height / 2, width, height);
-            ctx.fillStyle = "#1a237e";
+            ctx.fillStyle =
+              activeTheme && activeTheme.key === "candy" ? "#ff5d8f" : "#1a237e";
             ctx.font = "bold 18px Nunito";
             ctx.textAlign = "center";
             ctx.fillText(paper.label, 0, 6);
@@ -925,6 +931,73 @@
           ],
           flag: { x: 3600, y: H - 256 },
         },
+        {
+          name: "1-4",
+          theme: "candy",
+          intro: "糖果屋庆典 1-4，把稿件送上 CNS 舞台！",
+          goalX: 3200,
+          timeLimit: 320,
+          groundSegments: 75,
+          start: { x: 160, y: H - 140 },
+          platforms: [
+            { x: 320, y: H - 240, tiles: 3 },
+            { x: 680, y: H - 220, tiles: 2 },
+            { x: 960, y: H - 260, tiles: 3 },
+            { x: 1340, y: H - 280, tiles: 3 },
+            { x: 1680, y: H - 240, tiles: 3 },
+            { x: 2020, y: H - 260, tiles: 3 },
+            { x: 2360, y: H - 220, tiles: 2 },
+            { x: 2680, y: H - 240, tiles: 2 },
+          ],
+          bricks: [
+            { x: 520, y: H - 240, kind: "question", reward: "coin" },
+            { x: 568, y: H - 240, kind: "question", reward: "coin" },
+            { x: 616, y: H - 240, kind: "question", reward: "mushroom" },
+            { x: 1120, y: H - 280, kind: "question", reward: "coin" },
+            { x: 1168, y: H - 280, kind: "solid" },
+            { x: 1520, y: H - 320, kind: "question", reward: "coin" },
+            { x: 1568, y: H - 320, kind: "question", reward: "coin" },
+            { x: 1820, y: H - 260, kind: "question", reward: "mushroom" },
+            { x: 2140, y: H - 280, kind: "question", reward: "coin" },
+            { x: 2188, y: H - 280, kind: "solid" },
+            { x: 2460, y: H - 240, kind: "question", reward: "coin" },
+          ],
+          coins: [
+            [360, H - 200],
+            [400, H - 220],
+            [440, H - 240],
+            [780, H - 220],
+            [820, H - 240],
+            [860, H - 260],
+            [1180, H - 260],
+            [1220, H - 280],
+            [1260, H - 260],
+            [1640, H - 240],
+            [1680, H - 260],
+            [1720, H - 240],
+            [2060, H - 260],
+            [2100, H - 240],
+            [2300, H - 200],
+            [2340, H - 220],
+            [2380, H - 200],
+            [2700, H - 220],
+            [2740, H - 240],
+            [2780, H - 220],
+          ],
+          goombas: [
+            { x: 620, y: H - 110 },
+            { x: 980, y: H - 110 },
+            { x: 1420, y: H - 110 },
+            { x: 1880, y: H - 110 },
+            { x: 2260, y: H - 110 },
+          ],
+          pipes: [
+            { x: 860, y: H - 200, width: 96, height: 200 },
+            { x: 1800, y: H - 208, width: 110, height: 208 },
+            { x: 2560, y: H - 196, width: 96, height: 196 },
+          ],
+          flag: { x: 3200, y: H - 256 },
+        },
       ];
 
       const levelState = {
@@ -1036,10 +1109,15 @@
         }
       }
 
-      function resetGame({ showMessage = true } = {}) {
-        loadLevel(0, { resetStats: true, showIntro: !showMessage });
+      function resetGame({ showMessage = true, startLevel = 0 } = {}) {
+        const levelIndex = clamp(startLevel, 0, levelDefinitions.length - 1);
+        loadLevel(levelIndex, { resetStats: true, showIntro: !showMessage });
         if (showMessage) {
-          showToast("回到 1-1，科研冒险再启程！", 1600);
+          if (levelIndex === 0) {
+            showToast("回到 1-1，科研冒险再启程！", 1600);
+          } else {
+            showToast(`直接抵达 ${levelDefinitions[levelIndex].name}！`, 1500);
+          }
         }
       }
 
@@ -1111,8 +1189,21 @@
             platformTop: "#f3f6ff",
             platformBody: "#d0ddff",
           },
+          candy: {
+            sky: ["#ffe6f4", "#fff8e8"],
+            isUnderground: false,
+            hillLight: "rgba(255, 209, 220, 0.75)",
+            hillDark: "rgba(255, 182, 193, 0.75)",
+            cloud: "#ffffff",
+            groundTop: "#f8a5c2",
+            groundBody: "#ffb8d2",
+            groundStripe: "#f582a7",
+            platformTop: "#ffd1dc",
+            platformBody: "#ff9ec4",
+          },
         };
-        activeTheme = themes[themeKey] ?? themes.surface;
+        const selected = themes[themeKey] ?? themes.surface;
+        activeTheme = { ...selected, key: themeKey };
       }
 
       function completeLevel() {
@@ -1128,7 +1219,7 @@
           }, 1200);
         } else {
           levelCelebration.spawn();
-          showToast("全部关卡完成！太棒了！", 2400);
+          showToast("糖果屋烟花绽放！CNS 正式发表！", 2600);
         }
       }
 
@@ -1376,6 +1467,53 @@
           drawHill(2200, world.height - 64, 240, activeTheme.hillDark);
           drawHill(2800, world.height - 64, 180, activeTheme.hillLight);
 
+          if (activeTheme.key === "candy") {
+            const candyPositions = [
+              { x: 400, y: world.height - 120, radius: 60, color: "#ff9ec4" },
+              { x: 980, y: world.height - 140, radius: 48, color: "#ffd166" },
+              { x: 1680, y: world.height - 150, radius: 54, color: "#a29bfe" },
+              { x: 2280, y: world.height - 130, radius: 66, color: "#ff92a5" },
+            ];
+            candyPositions.forEach((candy, index) => {
+              const cx = candy.x - cameraX;
+              const cy = candy.y;
+              ctx.save();
+              ctx.translate(cx, cy);
+              ctx.fillStyle = "#f7d6ff";
+              ctx.fillRect(-8, -candy.radius * 1.6, 16, candy.radius * 1.6);
+              ctx.lineWidth = 4;
+              ctx.strokeStyle = index % 2 === 0 ? "#ff6f91" : "#ffa26b";
+              ctx.beginPath();
+              ctx.moveTo(-8, -candy.radius * 1.6);
+              ctx.lineTo(8, -candy.radius * 1.2);
+              ctx.moveTo(-8, -candy.radius * 1.2);
+              ctx.lineTo(8, -candy.radius * 0.8);
+              ctx.moveTo(-8, -candy.radius * 0.8);
+              ctx.lineTo(8, -candy.radius * 0.4);
+              ctx.stroke();
+              ctx.fillStyle = candy.color;
+              ctx.beginPath();
+              ctx.arc(0, -candy.radius * 1.7, candy.radius, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.strokeStyle = "rgba(255,255,255,0.8)";
+              ctx.lineWidth = 3;
+              for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI * 2 * i) / 6;
+                ctx.beginPath();
+                ctx.moveTo(
+                  Math.cos(angle) * candy.radius * 0.3,
+                  -candy.radius * 1.7 + Math.sin(angle) * candy.radius * 0.3,
+                );
+                ctx.lineTo(
+                  Math.cos(angle) * candy.radius * 0.8,
+                  -candy.radius * 1.7 + Math.sin(angle) * candy.radius * 0.8,
+                );
+                ctx.stroke();
+              }
+              ctx.restore();
+            });
+          }
+
           if (activeTheme.cloud) {
             ctx.fillStyle = activeTheme.cloud;
             for (let i = 0; i < 16; i++) {
@@ -1455,8 +1593,17 @@
         level.pipes.forEach((pipe) => {
           const x = pipe.x - world.camera.x;
           if (x + pipe.width < -64 || x > canvas.width + 64) return;
-          const bodyColor = activeTheme.isUnderground ? "#4f6ed8" : "#2dac4a";
-          const topColor = activeTheme.isUnderground ? "#6f8df0" : "#4ed76d";
+          const isCandy = activeTheme.key === "candy";
+          const bodyColor = activeTheme.isUnderground
+            ? "#4f6ed8"
+            : isCandy
+            ? "#ff80ab"
+            : "#2dac4a";
+          const topColor = activeTheme.isUnderground
+            ? "#6f8df0"
+            : isCandy
+            ? "#ffc2d7"
+            : "#4ed76d";
           ctx.fillStyle = bodyColor;
           ctx.fillRect(x, pipe.y + 18, pipe.width, pipe.height - 18);
           ctx.fillStyle = topColor;
@@ -1785,7 +1932,7 @@
         keyState.clear();
       });
 
-      resetGame({ showMessage: false });
+      resetGame({ showMessage: false, startLevel: 2 });
       requestAnimationFrame(loop);
     </script>
   </body>

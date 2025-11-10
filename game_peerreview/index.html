@@ -318,11 +318,11 @@
             <div class="title-block">
                 <h1><span>🛡️</span>Peer Review Defense</h1>
                 <p class="subtitle">
-                    布置你的实验数据、防御图表与引用壁垒，化解审稿人与编辑投来的严苛“质疑弹”。
-                    成功撑过所有波次，影响因子将飙升！
+                    Deploy experimental data, defensive figures, and citation ramparts to neutralize the ruthless “critique volleys” from reviewers and editors.
+                    Survive every wave and watch your impact factor skyrocket!
                 </p>
             </div>
-            <button class="primary-button" id="restartBtn">重新投稿</button>
+            <button class="primary-button" id="restartBtn">Resubmit</button>
         </header>
 
         <section class="scoreboard">
@@ -351,30 +351,30 @@
         <section class="battlefield">
             <canvas id="battleCanvas" width="900" height="500"></canvas>
             <div class="popup" id="startPopup">
-                <h2>准备投稿</h2>
+                <h2>Ready to Submit</h2>
                 <div class="difficulty-selector" id="difficultySelector">
-                    <span class="difficulty-label">选择难度</span>
+                    <span class="difficulty-label">Select Difficulty</span>
                     <div class="difficulty-options">
-                        <button class="difficulty-button active" data-difficulty="easy">基础</button>
-                        <button class="difficulty-button" data-difficulty="hard">专业</button>
+                        <button class="difficulty-button active" data-difficulty="easy">Standard</button>
+                        <button class="difficulty-button" data-difficulty="hard">Expert</button>
                     </div>
                 </div>
                 <p>
-                    布置证据防线化解 Reviewer / Editor，随手拾取 FigureYa 图表补 Funding，撑过 12 波即完成投稿！
+                    Build your evidence defenses to counter Reviewers and Editors, scoop up FigureYa charts for extra Funding, and withstand 12 waves to complete the submission!
                 </p>
-                <button class="primary-button" id="startBtn">开始投稿</button>
-                <button class="secondary-button" id="tutorialBtn">简要策略</button>
+                <button class="primary-button" id="startBtn">Start Submission</button>
+                <button class="secondary-button" id="tutorialBtn">Quick Strategy</button>
             </div>
             <div class="popup" id="endPopup" style="display:none;">
-                <h2 id="endTitle">投稿结果</h2>
-                <p id="endSummary">最终影响因子 0.0，守住 0 波。</p>
-                <button class="primary-button" id="retryBtn">重新投稿</button>
+                <h2 id="endTitle">Submission Result</h2>
+                <p id="endSummary">Final impact factor 0.0, survived 0 waves.</p>
+                <button class="primary-button" id="retryBtn">Resubmit</button>
             </div>
         </section>
 
         <section class="hint-bar" id="hintBar">
-            提示：及时拾取 FigureYa 图表（阳光）补充 Funding 与影响因子。
-            记得组合使用减速与输出证据，守住整篇论文！
+            Tip: Grab FigureYa figures (sunshine) to refill Funding and impact factor.
+            Combine slows and damage to keep the manuscript intact!
         </section>
     </div>
 
@@ -426,7 +426,7 @@
                 fireRate: 1.0,
                 range: CELL_WIDTH * 3,
                 color: '#4c6ef5',
-                desc: '射程均衡，伤害更高，适合早期积累。',
+                desc: 'Balanced range with higher damage, perfect for early scaling.',
             },
             {
                 id: 'figure',
@@ -437,7 +437,7 @@
                 fireRate: 0.75,
                 range: CELL_WIDTH * 2.6,
                 color: '#845ef7',
-                desc: '射速更快的近程火力，适合前排防守。',
+                desc: 'Faster close-range firepower, ideal for front-line defense.',
             },
             {
                 id: 'clinical',
@@ -450,7 +450,7 @@
                 slowFactor: 0.45,
                 slowDuration: 2.5,
                 color: '#2ec4b6',
-                desc: '临床或应用价值，稳住审稿人。',
+                desc: 'Clinical or translational value, keeps reviewers steady.',
             },
             {
                 id: 'novelty',
@@ -461,7 +461,7 @@
                 fireRate: 1.6,
                 range: CELL_WIDTH * 4.8,
                 color: '#ff6b6b',
-                desc: '高影响新颖度，远距离抗干扰。',
+                desc: 'High-impact novelty, long-range interference control.',
             },
             {
                 id: 'mechanism',
@@ -473,7 +473,7 @@
                 range: CELL_WIDTH * 3.6,
                 color: '#ffa94d',
                 explosionInterval: 6,
-                desc: '由相邻 Data 定期引爆连锁反应。',
+                desc: 'Triggered by adjacent Data, detonates periodic chain reactions.',
             },
             {
                 id: 'ai',
@@ -485,7 +485,7 @@
                 range: CELL_WIDTH * 3.6,
                 color: '#1aa6b7',
                 globalTarget: true,
-                desc: '全局侦察补刀塔，需配合其他证据输出。',
+                desc: 'Global scout finisher that relies on other evidence towers.',
             }
         ];
 
@@ -501,8 +501,8 @@
         });
 
         const DIFFICULTIES = {
-            easy: { label: '基础', editorMultiplier: 1, tokenIntervalScale: 1, initialBurstDuration: 2, initialBurstCount: 10 },
-            hard: { label: '专业', editorMultiplier: 2, tokenIntervalScale: 1 / 3, initialBurstDuration: 3, initialBurstCount: 15 }
+            easy: { label: 'Standard', editorMultiplier: 1, tokenIntervalScale: 1, initialBurstDuration: 2, initialBurstCount: 10 },
+            hard: { label: 'Expert', editorMultiplier: 2, tokenIntervalScale: 1 / 3, initialBurstDuration: 3, initialBurstCount: 15 }
         };
 
         let towers = [];
@@ -531,10 +531,10 @@
         let hintIndex = 0;
 
         const hints = [
-            '提示：引用壁垒可以叠加减速，为图表塔创造输出窗口。',
-            '提示：经费不足时尝试防守紧凑布局，多个塔共享同一路径。',
-            '提示：后期质疑弹抗性高，记得升级为高伤害的实验数据集。',
-            '提示：不同波次会改变质疑弹速度，观察节奏及时补位。'
+            'Tip: Citation barriers stack slows and open burst windows for Figure towers.',
+            'Tip: When funds are tight, condense defenses so multiple towers share the same lane.',
+            'Tip: Late waves bring tougher critiques—upgrade into high-damage data sets.',
+            'Tip: Wave speeds fluctuate; watch the tempo and reinforce quickly.'
         ];
 
         difficultyButtons.forEach(button => {
@@ -674,7 +674,7 @@
                     timer: 0.5,
                     maxTimer: 0.5
                 });
-                hintBar.textContent = `Mechanism 引爆连锁，一举清除了 ${cleared} 个质疑弹！`;
+                hintBar.textContent = `Mechanism triggered a chain blast, clearing ${cleared} critique projectiles!`;
             }
         }
 
@@ -689,11 +689,11 @@
         function handleTowerPlacement(col, row) {
             if (!selectedTower) return;
             if (towers.some(t => t.col === col && t.row === row)) {
-                hintBar.textContent = '这里已经放置过证据，试试其他位置。';
+                hintBar.textContent = 'Evidence already exists here—try another slot.';
                 return;
             }
             if (funds < selectedTower.cost) {
-                hintBar.textContent = '经费不足，先击退更多质疑弹累积经费。';
+                hintBar.textContent = 'Not enough funding; repel more critiques to earn resources.';
                 return;
             }
             funds -= selectedTower.cost;
@@ -714,7 +714,7 @@
             towers.push(towerData);
             rowTowerSets[row].add(selectedTower.id);
             checkRowSynergy(row);
-            hintBar.textContent = `已部署 ${selectedTower.label}。`;
+            hintBar.textContent = `${selectedTower.label} deployed.`;
             updateHUD();
         }
         function triggerSunRain(rowIndex) {
@@ -983,11 +983,11 @@
                     return true;
                 });
                 if (destroyedLabels.size > 0) {
-                    let attackerLabel = 'Reviewer 与 Editor';
+                    let attackerLabel = 'Reviewer and Editor';
                     if (attackerTypes.size === 1) {
                         attackerLabel = attackerTypes.has('Editor') ? 'Editor' : 'Reviewer';
                     }
-                    hintBar.textContent = `${attackerLabel} 摧毁了 ${Array.from(destroyedLabels).join('、')}！`;
+                    hintBar.textContent = `${attackerLabel} destroyed ${Array.from(destroyedLabels).join(', ')}!`;
                 }
             }
 
@@ -1172,13 +1172,13 @@
 
         function triggerGameOver(success) {
             running = false;
-            endTitle.textContent = success ? '成功发表！' : '被拒稿，需要大修';
+            endTitle.textContent = success ? 'Accepted for Publication!' : 'Rejected—Major Revisions Needed';
             if (success) {
                 const baseline = currentDifficulty === 'hard' ? 58 : 42;
                 impactFactor = Math.max(impactFactor, baseline);
                 updateHUD();
             }
-            endSummary.textContent = `最终影响因子 ${impactFactor.toFixed(1)}，守住 ${wave} / ${MAX_WAVES} 波。`;
+            endSummary.textContent = `Final impact factor ${impactFactor.toFixed(1)}, survived ${wave} / ${MAX_WAVES} waves.`;
             endPopup.style.display = 'flex';
         }
 
@@ -1210,7 +1210,7 @@
                     selectedTower = tower;
                     document.querySelectorAll('.tower-button').forEach(btn => btn.classList.remove('selected'));
                     button.classList.add('selected');
-                    hintBar.textContent = `已选择 ${tower.label}，点击空格放置。`;
+                    hintBar.textContent = `Selected ${tower.label}; press space to place.`;
                 });
                 towerPanel.appendChild(button);
             }
@@ -1240,7 +1240,7 @@
                     impactFactor += 0.05;
                     tokens.splice(i, 1);
                     updateHUD();
-                    hintBar.textContent = '收集到科研阳光，经费充裕了一些！';
+                    hintBar.textContent = 'Collected research sunshine—funding topped up!';
                     return true;
                 }
             }

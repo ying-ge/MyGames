@@ -1,38 +1,38 @@
 # Peer Review Defense
 
-Peer Review Defense 是一款“学术投稿化”的塔防策略小游戏。你需要部署不同类型的科研证据，抵挡 Reviewer 与 Editor 接连不断的“质疑弹”，稳定提升论文的影响因子。
+Peer Review Defense is a tower-defense game built around the academic submission process. Deploy different types of evidence to counter relentless Reviewer and Editor “critique projectiles” and keep your Impact Factor climbing.
 
-## 核心玩法
+## Core Gameplay
 
-- **塔部署**：点击页面上的防御面板，选择想要放置的证据，再点击战场格子即可部署。部署需要消耗经费（Funding）。
-- **六类证据塔**
-  - **Data**（能量 60）：基础输出塔，射程均衡，稳步削弱 Reviewer / Editor。
-  - **Figure**（能量 60）：近程速射塔，快速处理正面压力。
-  - **Novelty**（能量 90）：远程高伤害塔，以原创性重创前排质疑。
-  - **Mechanism**（能量 90）：中距离持续火力塔，突出机制解析。
-  - **Clinical**（能量 120）：临床引导区，稳住 Reviewer / Editor 推进节奏。
-  - **AI**（能量 180）：全图侦察补刀塔，需配合其他证据输出。
-- **资源循环**：击败质疑弹可返还经费并提升影响因子（Impact Factor），用于解锁更强部署。
-- **难度选择**：提供基础 / 专业两档，Editor 的攻击与耐久分别为 Reviewer 的 1× / 2×。
-- **波次挑战**：共 12 波质疑，越往后质疑弹速度、生命值越高，Editor 的出场比例也会逐渐攀升。
-- **影响因子与完整度**：影响因子代表最终成果，Integrity（完整度）为生命值。完整度掉为 0 即投稿失败。
+- **Tower placement**: Select an evidence tower from the control panel, then click a grid cell to deploy it. Every tower costs Funding.
+- **Six evidence towers**
+  - **Data** (energy 60): Balanced-range damage dealer for steady attrition.
+  - **Figure** (energy 60): Fast-firing short-range tower that handles front-line pressure.
+  - **Novelty** (energy 120): Long-range, high-impact strikes that lean on originality.
+  - **Mechanism** (energy 150): Medium-range chain reactions—triggered by adjacent Data.
+  - **Clinical** (energy 90): Slows advancement by anchoring clinical or translational value.
+  - **AI** (energy 150): Global scout finisher that pairs with other towers for cleanup.
+- **Resource loop**: Defeating critiques refunds Funding and raises Impact Factor, unlocking higher-tier deployments.
+- **Difficulty settings**: Standard and Expert; Editors hit twice as hard and endure longer in Expert.
+- **Wave survival**: 12 escalating waves—later waves move faster, have more HP, and include more Editors.
+- **Impact Factor & Integrity**: Impact Factor represents performance; Integrity is your life total. Hit zero Integrity and the submission fails.
 
-## 操作说明
+## Controls
 
-- 鼠标 / 触控：点击选择塔 → 点击战场空格部署。
-- 键盘：本作主要面向指点操作，暂未绑定快捷键。
-- 若发现经费不足，可等待现有防线击败质疑弹获取补给。
+- Mouse / touch: click a tower → click an empty grid cell to deploy.
+- Keyboard: primarily designed for point-and-click; no dedicated shortcuts yet.
+- If Funding runs low, hold the line until existing towers defeat critiques for income.
 
-## 运行方式
+## Running the Game
 
-项目为纯前端静态页，可直接通过静态服务器访问：
+This project is a static front-end page; serve it locally or host it anywhere that supports static files:
 
 ```bash
 python3 -m http.server 8000
-# 浏览器访问 http://localhost:8000/game_peerreview/
+# then visit http://localhost:8000/game_peerreview/
 ```
 
-或配合任意静态托管服务（如 GitHub Pages）上线部署。
+Or deploy via any static hosting platform (e.g., GitHub Pages).
 
-祝你在严苛的 Peer Review 中力挽狂澜，成功发表高影响力论文！📈
+May your manuscript weather Reviewer #3 and emerge with a triumphant acceptance! 📈
 
