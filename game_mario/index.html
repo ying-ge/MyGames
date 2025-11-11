@@ -330,7 +330,7 @@
           <div class="level-selector">
             <label for="level-select">Start Level:</label>
             <select id="level-select">
-              <option value="0">1-1 FigureYa Plains</option>
+              <option value="0">1-1 Research Field</option>
               <option value="1">1-2 Underground Lab</option>
               <option value="2">1-3 Cloudtop Testbed</option>
               <option value="3">1-4 Candy House</option>
@@ -452,6 +452,7 @@
           this.onGround = false;
           this.score = 0;
           this.coins = 0;
+          this.impactFactor = 0; // Impact factor (0-100)
           this.state = "idle";
           this.invincibleTimer = 0;
           this.animationTimer = 0;
@@ -466,6 +467,9 @@
           this.collectibles = 0;
           this.onSkateboard = false;
           this.skateboardTimer = 0;
+          this.onBoat = false;
+          this.currentBoat = null;
+          this.lastBoat = null; // 记录最后所在的船（用于在障碍物上时让船跟随）
           this.updateDimensions("small");
         }
 
@@ -505,6 +509,8 @@
 
         update(dt) {
           const isSnow = activeTheme && activeTheme.key === "snow";
+          const isWater = levelDefinitions[currentLevelIndex] && levelDefinitions[currentLevelIndex].theme === "water";
+          const isBoat = levelDefinitions[currentLevelIndex] && levelDefinitions[currentLevelIndex].theme === "boat";
           
           // 滑板状态更新
           if (this.onSkateboard) {
@@ -517,12 +523,156 @@
             }
           }
           
-          // 滑雪场速度更快，滑板上更快
-          const baseSpeed = this.size === "big" ? 300 : 280;
-          let speed = isSnow ? baseSpeed * 1.3 : baseSpeed;
-          if (this.onSkateboard) {
-            speed = baseSpeed * 2.0; // 滑板上速度翻倍
-          }
+          // 在船上时，玩家控制船移动
+          if (this.onBoat && this.currentBoat) {
+            const boatAccel = 600; // 船的加速度
+            const boatMaxSpeed = 250; // 船的最大速度
+            
+            // 检测前方是否有其他船（仅在向右移动时检测）
+            let canMoveRight = true;
+            if (level && level.boats) {
+              for (const otherBoat of level.boats) {
+                if (otherBoat === this.currentBoat) continue; // 跳过当前船
+                
+                // 检查前方是否有船（在右侧，且Y位置相近）
+                const distanceX = otherBoat.x - (this.currentBoat.x + this.currentBoat.width);
+                const distanceY = Math.abs(otherBoat.y - this.currentBoat.y);
+                
+                // 如果前方有船（距离小于100像素，且Y位置相近），阻止前进
+                if (distanceX >= 0 && distanceX < 100 && distanceY < 30) {
+                  canMoveRight = false;
+                  // 如果船正在向右移动，立即停止
+                  if (this.currentBoat.vx > 0) {
+                    this.currentBoat.vx = 0;
+                  }
+                  // 确保船不会与前方船重叠
+                  if (this.currentBoat.x + this.currentBoat.width > otherBoat.x) {
+                    this.currentBoat.x = otherBoat.x - this.currentBoat.width - 1;
+                  }
+                  break;
+                }
+              }
+            }
+            
+            if (keyState.has("ArrowLeft") || keyState.has("KeyA")) {
+              this.currentBoat.vx = clamp(this.currentBoat.vx - boatAccel * dt, -boatMaxSpeed, boatMaxSpeed);
+              this.facing = -1;
+            } else if ((keyState.has("ArrowRight") || keyState.has("KeyD")) && canMoveRight) {
+              // 只有在可以向右移动时才允许加速
+              this.currentBoat.vx = clamp(this.currentBoat.vx + boatAccel * dt, -boatMaxSpeed, boatMaxSpeed);
+              this.facing = 1;
+            } else if (!canMoveRight && this.currentBoat.vx > 0) {
+              // 如果前方有船，逐渐减速
+              this.currentBoat.vx = Math.max(0, this.currentBoat.vx - boatAccel * dt * 2);
+            }
+            
+            // 玩家跟随船移动（允许玩家在船上移动，以便调整位置跳跃到前方的船）
+            // 允许玩家在船上自由移动，可以移动到船边缘
+            const boatLeft = this.currentBoat.x + 2;
+            const boatRight = this.currentBoat.x + this.currentBoat.width - 2;
+            
+            // 玩家在船上时的速度处理（必须在位置更新之前）
+            // 关键：即使船被挡住了，玩家也可以积累速度，这样跳跃时才能跳到前方的船
+            if (keyState.has("ArrowRight") || keyState.has("KeyD")) {
+              // 玩家想向右移动，积累向右的速度（即使船被挡住也可以积累）
+              // 初始化速度（如果之前是0或负数）
+              if (this.vx <= 0) {
+                this.vx = 150; // 给一个初始速度
+              }
+              // 积累速度（快速积累）
+              this.vx = Math.min(this.vx + 1000 * dt, 600); // 积累速度，最大600
+              this.facing = 1;
+            } else if (keyState.has("ArrowLeft") || keyState.has("KeyA")) {
+              // 玩家想向左移动
+              if (this.vx >= 0) {
+                this.vx = -50;
+              }
+              this.vx = Math.max(this.vx - 600 * dt, -200);
+              this.facing = -1;
+            } else {
+              // 没有按键时，保持当前速度（不重置为船的速度，这样跳跃时才有速度）
+              // 只应用轻微的阻力，保持速度以便跳跃
+              this.vx *= 0.98;
+              // 只有当速度非常小时才跟随船
+              if (Math.abs(this.vx) < 5) {
+                this.vx = this.currentBoat.vx;
+              }
+            }
+            
+            // 玩家可以在船上移动（速度更快，以便快速移动到船边缘）
+            if (keyState.has("ArrowLeft") || keyState.has("KeyA")) {
+              this.x = Math.max(boatLeft, this.x - 350 * dt);
+            } else if (keyState.has("ArrowRight") || keyState.has("KeyD")) {
+              this.x = Math.min(boatRight - this.width, this.x + 350 * dt);
+            }
+            // 确保玩家不会离开船（但允许在边缘）
+            this.x = clamp(this.x, boatLeft, boatRight - this.width);
+            
+            // 玩家的Y位置跟随船的Y位置
+            this.y = this.currentBoat.y - this.height;
+            this.vy = 0;
+            this.onGround = true;
+            
+            // 更新船的动画（这会在船的update中处理碰撞检测）
+            this.currentBoat.update(dt);
+          } else if (isBoat && !this.onBoat) {
+            // 第9关：不在船上时
+            if (this.onGround && this.lastBoat) {
+              // 在障碍物上时，允许玩家移动，船跟随玩家
+              const baseSpeed = this.size === "big" ? 300 : 280;
+              const accel = 1400;
+              const maxSpeed = baseSpeed;
+              
+              if (keyState.has("ArrowLeft") || keyState.has("KeyA")) {
+                this.vx = clamp(this.vx - accel * dt, -maxSpeed, maxSpeed);
+                this.facing = -1;
+              } else if (keyState.has("ArrowRight") || keyState.has("KeyD")) {
+                this.vx = clamp(this.vx + accel * dt, -maxSpeed, maxSpeed);
+                this.facing = 1;
+              } else {
+                // 摩擦力
+                this.vx *= world.friction;
+                if (Math.abs(this.vx) < 40) this.vx = 0;
+              }
+              
+              // 船跟随玩家同步移动
+              this.lastBoat.vx = this.vx;
+              this.lastBoat.x += this.lastBoat.vx * dt;
+              // 更新船的动画
+              this.lastBoat.update(dt);
+            } else {
+              // 在空中时，允许玩家控制水平移动（以便跳向前方的船）
+              const baseSpeed = this.size === "big" ? 300 : 280;
+              const airAccel = 1200; // 增加空中加速度，确保能够跳到前方的船
+              const maxAirSpeed = baseSpeed * 1.2; // 增加空中最大速度
+              
+              if (keyState.has("ArrowLeft") || keyState.has("KeyA")) {
+                this.vx = clamp(this.vx - airAccel * dt, -maxAirSpeed, maxAirSpeed);
+                this.facing = -1;
+              } else if (keyState.has("ArrowRight") || keyState.has("KeyD")) {
+                this.vx = clamp(this.vx + airAccel * dt, -maxAirSpeed, maxAirSpeed);
+                this.facing = 1;
+              }
+              // 在空中时保持水平速度（减少阻力，保持速度以便跳到前方的船）
+              this.vx *= 0.99;
+            }
+            // 允许垂直移动（重力下落）
+            this.vy += world.gravity * dt;
+            this.vy = Math.min(this.vy, 980);
+            this.x += this.vx * dt;
+            this.y += this.vy * dt;
+          } else {
+            // 正常移动逻辑
+            // 滑雪场速度更快，滑板上更快
+            const baseSpeed = this.size === "big" ? 300 : 280;
+            let speed = isSnow ? baseSpeed * 1.3 : baseSpeed;
+            if (this.onSkateboard) {
+              speed = baseSpeed * 2.0; // 滑板上速度翻倍
+            }
+            // 水下移动速度较慢
+            if (isWater) {
+              speed = baseSpeed * 0.7;
+            }
           const accel = this.onGround ? 1400 : 860;
           const maxSpeed = this.onGround ? speed : speed - 40;
 
@@ -533,32 +683,90 @@
             this.vx = clamp(this.vx + accel * dt, -maxSpeed, maxSpeed);
             this.facing = 1;
           } else if (this.onGround) {
-            // 滑板上摩擦力更低
-            const friction = this.onSkateboard ? 0.96 : world.friction;
-            this.vx *= friction;
-            // 滑板上需要更小的速度阈值才能停下
-            const stopThreshold = this.onSkateboard ? 10 : (isSnow ? 15 : 40);
-            if (Math.abs(this.vx) < stopThreshold) this.vx = 0;
+              // 滑板上摩擦力更低
+              const friction = this.onSkateboard ? 0.96 : world.friction;
+              this.vx *= friction;
+              // 滑板上需要更小的速度阈值才能停下
+              const stopThreshold = this.onSkateboard ? 10 : (isSnow ? 15 : 40);
+              if (Math.abs(this.vx) < stopThreshold) this.vx = 0;
+            }
           }
 
-          const jumpVelocity = this.size === "big" ? -700 : -600;
-          if (
-            (keyState.has("ArrowUp") ||
-              keyState.has("KeyW") ||
-              keyState.has("Space") ||
-              keyState.has("KeyK")) &&
-            this.onGround
-          ) {
-            this.vy = jumpVelocity;
-            this.onGround = false;
-            showToast("Lift-off! Research Mario leaps into action!", 1000);
+          // 水下可以上下移动
+          if (isWater) {
+            const verticalAccel = 800; // 上下移动加速度
+            if (keyState.has("ArrowUp") || keyState.has("KeyW")) {
+              this.vy -= verticalAccel * dt;
+            } else if (keyState.has("ArrowDown") || keyState.has("KeyS")) {
+              this.vy += verticalAccel * dt;
+            }
+            // 如果没有按上下键，添加轻微的水阻力
+            if (!keyState.has("ArrowUp") && !keyState.has("KeyW") && 
+                !keyState.has("ArrowDown") && !keyState.has("KeyS")) {
+              this.vy *= 0.95; // 水阻力，逐渐减速
+            }
+          } else {
+            // 非水下关卡的跳跃（第9关在船上时可以跳跃）
+            const jumpVelocity = this.size === "big" ? -700 : -600;
+            if (
+              (keyState.has("ArrowUp") ||
+                keyState.has("KeyW") ||
+                keyState.has("Space") ||
+                keyState.has("KeyK")) &&
+              (this.onGround || (isBoat && this.onBoat))
+            ) {
+              this.vy = jumpVelocity;
+              this.onGround = false;
+              // 在船上跳跃时，使用玩家当前的速度（已经积累了速度）
+              if (isBoat && this.onBoat && this.currentBoat) {
+                // 使用玩家当前的速度（如果玩家按了方向键，已经有速度了）
+                // 如果速度太小，至少给一个基础速度
+                let jumpSpeed = this.vx; // 使用当前积累的速度
+                
+                if (keyState.has("ArrowRight") || keyState.has("KeyD")) {
+                  // 确保有足够的速度跳到前方的船（至少500）
+                  jumpSpeed = Math.max(jumpSpeed, 500);
+                } else if (keyState.has("ArrowLeft") || keyState.has("KeyA")) {
+                  jumpSpeed = Math.min(jumpSpeed, -150);
+                } else {
+                  // 没有按方向键，给一个基础向右速度
+                  jumpSpeed = Math.max(jumpSpeed, 450);
+                }
+                
+                this.vx = jumpSpeed;
+                this.lastBoat = this.currentBoat; // 保存船的引用，用于后续同步
+                
+                // 立即清除船上状态，让玩家可以自由移动
+                this.onBoat = false;
+                this.currentBoat = null;
+                
+                // 立即更新玩家位置，离开船的碰撞范围
+                this.y -= 15; // 向上移动更多，确保离开船的碰撞范围
+                this.x += 5; // 稍微向右移动，避免立即检测到还在船上
+              }
+              showToast("Lift-off! Research Mario leaps into action!", 1000);
+            }
           }
 
-          this.vy += world.gravity * dt;
-          this.vy = Math.min(this.vy, 980);
+          // 在船上时不应用重力和移动（已在上面处理）
+          if (!this.onBoat && !isBoat) {
+            // 水下浮力效果：减少重力，添加浮力
+            if (isWater) {
+              // 减少重力影响（只有20%的重力）
+              this.vy += world.gravity * dt * 0.2;
+              // 添加浮力：抵消部分重力，让玩家能够悬浮
+              const buoyancy = 320; // 浮力大小（约等于20%的重力，形成平衡）
+              this.vy -= buoyancy * dt; // 持续向上的浮力
+              // 限制水下最大速度
+              this.vy = clamp(this.vy, -250, 250);
+            } else {
+              this.vy += world.gravity * dt;
+              this.vy = Math.min(this.vy, 980);
+            }
 
-          this.x += this.vx * dt;
-          this.y += this.vy * dt;
+            this.x += this.vx * dt;
+            this.y += this.vy * dt;
+          }
 
           this.animationTimer += dt;
           if (this.vy < -60) {
@@ -585,6 +793,34 @@
           this.coins += count;
           hudCoins.textContent = `×${this.coins.toString().padStart(2, "0")}`;
           this.addScore(200);
+          
+          // 更新Impact factor：每关最多10分，重复过同一关不增长
+          // 每个金币贡献约0.4分，这样每关25个金币最多10分
+          const impactPerCoin = 0.4;
+          const maxImpactPerLevel = 10; // 每关最多10分
+          
+          // 检查当前关卡是否已经达到上限（避免重复过同一关时增长）
+          const levelAlreadyMaxed = levelImpacts[currentLevelIndex] >= maxImpactPerLevel;
+          
+          if (!levelAlreadyMaxed) {
+            // 计算当前关卡可以增加的分数
+            const remainingLevelImpact = maxImpactPerLevel - levelImpacts[currentLevelIndex];
+            const impactToAdd = Math.min(count * impactPerCoin, remainingLevelImpact);
+            
+            // 更新当前关卡的贡献（永久记录）
+            levelImpacts[currentLevelIndex] = Math.min(maxImpactPerLevel, levelImpacts[currentLevelIndex] + count * impactPerCoin);
+            
+            // 更新当前关卡的临时计数（用于显示）
+            currentLevelImpact = levelImpacts[currentLevelIndex];
+            currentLevelCoins += count;
+            
+            // 更新总Impact factor（最多80分，8关×10分）
+            this.impactFactor = Math.min(80, this.impactFactor + impactToAdd);
+          } else {
+            // 如果当前关卡已经达到上限，只更新金币计数，不增加Impact factor
+            currentLevelCoins += count;
+          }
+          
           if (track) {
             this.trackCollectible(count);
           }
@@ -629,6 +865,8 @@
           this.state = "walk";
           this.animationTimer = 0;
           this.flattenTimer = 0.4;
+          this.onGround = false;
+          this.edgeCheckTimer = 0; // 边缘检测计时器，避免频繁检测
         }
 
         update(dt) {
@@ -639,6 +877,43 @@
             }
             return;
           }
+          
+          // 边缘检测：检查前方是否有地面（仅在第一关）
+          this.edgeCheckTimer += dt;
+          if (this.edgeCheckTimer >= 0.1) { // 每0.1秒检测一次
+            this.edgeCheckTimer = 0;
+            
+            // 只在第一关（currentLevelIndex === 0）进行边缘检测
+            if (currentLevelIndex === 0 && this.onGround) {
+              // 检查前方是否有地面或平台
+              const checkDistance = 20; // 检测距离
+              const checkX = this.direction > 0 ? this.right + checkDistance : this.left - checkDistance;
+              const checkY = this.bottom + 5; // 在脚下方一点检测
+              
+              // 检查是否有平台或地面
+              let hasGroundAhead = false;
+              const colliders = [...level.platforms, ...level.bricks];
+              
+              for (const platform of colliders) {
+                if (
+                  checkX >= platform.x &&
+                  checkX < platform.x + platform.width &&
+                  checkY >= platform.y &&
+                  checkY < platform.y + platform.height
+                ) {
+                  hasGroundAhead = true;
+                  break;
+                }
+              }
+              
+              // 如果没有地面，改变方向
+              if (!hasGroundAhead) {
+                this.direction *= -1;
+                this.vx = this.direction * this.walkSpeed;
+              }
+            }
+          }
+          
           this.vy += world.gravity * dt;
           this.vy = Math.min(this.vy, 700);
           this.vx = this.direction * this.walkSpeed;
@@ -881,6 +1156,53 @@
           this.state = "squashed";
           this.vx = 0;
           this.vy = 0;
+        }
+      }
+
+      class Boat extends Entity {
+        constructor(x, y) {
+          super(x, y, 120, 40);
+          this.vx = 0;
+          this.vy = 0;
+          this.bobTimer = 0; // 用于船的上下浮动动画
+          this.baseY = y; // 记录船的基准Y位置
+          this.waveOffset = 0; // 波浪偏移
+        }
+
+        update(dt) {
+          // 船的上下浮动效果（模拟水面波浪）
+          this.bobTimer += dt * 2;
+          this.waveOffset = Math.sin(this.bobTimer) * 3; // 上下浮动3像素
+          this.y = this.baseY + this.waveOffset;
+          
+          // 检测前方是否有其他船（仅在向右移动时检测）
+          if (this.vx > 0 && level && level.boats) {
+            for (const otherBoat of level.boats) {
+              if (otherBoat === this) continue; // 跳过自己
+              
+              // 检查前方是否有船（在右侧，且Y位置相近）
+              const distanceX = otherBoat.x - (this.x + this.width);
+              const distanceY = Math.abs(otherBoat.y - this.y);
+              
+              // 如果前方有船（距离小于100像素，且Y位置相近），阻止前进
+              if (distanceX >= 0 && distanceX < 100 && distanceY < 30) {
+                // 阻止船继续前进
+                this.vx = 0;
+                // 确保船不会与前方船重叠
+                if (this.x + this.width > otherBoat.x) {
+                  this.x = otherBoat.x - this.width - 1;
+                }
+                return; // 直接返回，不执行后续移动
+              }
+            }
+          }
+          
+          // 船的移动（由玩家控制）
+          this.x += this.vx * dt;
+          
+          // 添加轻微的水阻力
+          this.vx *= 0.95;
+          if (Math.abs(this.vx) < 5) this.vx = 0;
         }
       }
 
@@ -1175,6 +1497,28 @@
         }
       }
 
+      class RockObstacle extends Entity {
+        constructor(x, y, width = 80, height = 120) {
+          super(x, y, width, height);
+          // 岩石可以攀爬，不需要特殊属性
+        }
+
+        update(dt) {
+          // 岩石是静态的，不需要更新
+        }
+      }
+
+      class TrashObstacle extends Entity {
+        constructor(x, y) {
+          super(x, y, 50, 40);
+          // 垃圾障碍物，静态的
+        }
+
+        update(dt) {
+          // 垃圾障碍物是静态的，不需要更新
+        }
+      }
+
       class Flag extends Entity {
         constructor(x, y) {
           super(x, y, 24, 180);
@@ -1200,6 +1544,8 @@
         icePillars: [],
         pumpkinObstacles: [],
         coralObstacles: [],
+        rockObstacles: [],
+        trashObstacles: [],
         flag: null,
       };
 
@@ -1286,12 +1632,12 @@
           const x = i * 64;
           const isInPit = pits.some(pit => x >= pit.x && x < pit.x + pit.width);
           if (!isInPit) {
-            level.platforms.push({
+          level.platforms.push({
               x: x,
-              y: world.height - 64,
-              width: 64,
-              height: 64,
-            });
+            y: world.height - 64,
+            width: 64,
+            height: 64,
+          });
           }
         }
       }
@@ -1318,8 +1664,8 @@
       const levelDefinitions = [
         {
           name: "1-1",
-          theme: "surface",
-          intro: "FigureYa Plains 1-1: dash to the flag and publish!",
+          theme: "research",
+          intro: "Research Field 1-1: dash to the flag and publish!",
           goalX: 3300,
           timeLimit: 300,
           groundSegments: 80,
@@ -1408,6 +1754,13 @@
             { x: 900, y: H - 200 },
             { x: 1380, y: H - 180 },
             { x: 1900, y: H - 220 },
+          ],
+          trash: [
+            { x: 600, y: H - 104 },  // y: H - 64 - 40，使垃圾袋底部贴地
+            { x: 1000, y: H - 104 },
+            { x: 1400, y: H - 104 },
+            { x: 1800, y: H - 104 },
+            { x: 2200, y: H - 104 },
           ],
           flag: { x: 2600, y: H - 256 },
         },
@@ -1689,6 +2042,17 @@
             { x: 3100, y: H - 110 },
             { x: 3500, y: H - 110 },
           ],
+          upperSharks: [
+            { x: 500, y: H - 300 },
+            { x: 900, y: H - 280 },
+            { x: 1300, y: H - 320 },
+            { x: 1700, y: H - 290 },
+            { x: 2100, y: H - 310 },
+            { x: 2500, y: H - 280 },
+            { x: 2900, y: H - 300 },
+            { x: 3300, y: H - 290 },
+            { x: 3700, y: H - 310 },
+          ],
           corals: [
             { x: 600, y: H - 64 },
             { x: 1000, y: H - 64 },
@@ -1784,6 +2148,13 @@
             { x: 2950, y: H - 110 },
             { x: 3350, y: H - 110 },
             { x: 3750, y: H - 110 },
+          ],
+          rocks: [
+            { x: 600, y: H - 140, width: 80, height: 120 },
+            { x: 1200, y: H - 180, width: 80, height: 160 },
+            { x: 2000, y: H - 160, width: 80, height: 140 },
+            { x: 2800, y: H - 200, width: 80, height: 180 },
+            { x: 3600, y: H - 180, width: 80, height: 160 },
           ],
           flag: { x: 4200, y: H - 256 },
         },
@@ -1916,6 +2287,9 @@
         level.fallingCandies = [];
         level.pumpkinObstacles = [];
         level.coralObstacles = [];
+        level.rockObstacles = [];
+        level.trashObstacles = [];
+        level.boats = [];
         level.flag = null;
         level.pits = definition.pits ?? [];
         // 只在第四关初始化糖果雨相关属性
@@ -1946,6 +2320,13 @@
 
         (definition.planes ?? []).forEach(({ x, y }) => {
           level.entities.push(new Plane(x, y));
+        });
+
+        // 第六关上层水域的鲨鱼
+        (definition.upperSharks ?? []).forEach(({ x, y }) => {
+          if (definition.theme === "water") {
+            level.entities.push(new Shark(x, y));
+          }
         });
 
         (definition.goombas ?? []).forEach(({ x, y }) => {
@@ -1983,6 +2364,18 @@
           level.coralObstacles.push(new CoralObstacle(x, y)),
         );
 
+        (definition.rocks ?? []).forEach(({ x, y, width, height }) =>
+          level.rockObstacles.push(new RockObstacle(x, y, width, height)),
+        );
+
+        (definition.trash ?? []).forEach(({ x, y }) =>
+          level.trashObstacles.push(new TrashObstacle(x, y)),
+        );
+
+        (definition.boats ?? []).forEach(({ x, y }) =>
+          level.boats.push(new Boat(x, y)),
+        );
+
         (definition.candyObstacles ?? []).forEach(({ x, y }) =>
           level.candyObstacles.push(new CandyObstacle(x, y)),
         );
@@ -2004,6 +2397,9 @@
       let running = true;
       let currentLevelIndex = 0;
       let pendingLevelTimer = null;
+      let currentLevelCoins = 0; // 当前关卡收集的金币数
+      let currentLevelImpact = 0; // 当前关卡已贡献的Impact factor
+      let levelImpacts = new Array(8).fill(0); // 跟踪每个关卡已贡献的Impact factor（8个关卡）
 
       function loadLevel(index, { resetStats = false, showIntro = true, respawn = false } = {}) {
         if (pendingLevelTimer) {
@@ -2018,10 +2414,20 @@
         world.timeLimit = definition.timeLimit;
         world.camera.x = 0;
         buildLevel(definition);
+        
+        // 重置当前关卡的金币计数（每次加载新关卡时）
+        currentLevelCoins = 0;
+        // 从永久记录中恢复当前关卡的Impact factor（如果已经达到上限，则不再增长）
+        currentLevelImpact = levelImpacts[index] || 0;
 
         if (resetStats) {
           player.score = 0;
           player.coins = 0;
+          player.impactFactor = 0;
+          currentLevelCoins = 0;
+          currentLevelImpact = 0;
+          // 重置所有关卡的Impact factor记录
+          levelImpacts = new Array(8).fill(0);
           hudScore.textContent = "000000";
           hudCoins.textContent = "×00";
           player.setSize("small", { silent: true });
@@ -2045,10 +2451,35 @@
         player.y = start.y;
         player.vx = 0;
         player.vy = 0;
+        // 水下关卡：玩家从水中开始，不在地面上
+        if (definition.theme === "water") {
         player.onGround = false;
+          // 初始位置稍微上浮一点，让玩家从水中开始
+          if (player.y > world.height - 100) {
+            player.y = world.height - 200; // 确保玩家在水中，而不是在水底
+          }
+        } else {
+          player.onGround = false;
+        }
         player.invincibleTimer = 0;
         player.onSkateboard = false;
         player.skateboardTimer = 0;
+        player.onBoat = false;
+        player.currentBoat = null;
+        player.lastBoat = null;
+        
+        // 第9关：玩家出场时就在第一艘船上
+        if (definition.theme === "boat" && level.boats.length > 0) {
+          const firstBoat = level.boats[0];
+          // 将玩家放在第一艘船上
+          player.x = firstBoat.x + firstBoat.width / 2 - player.width / 2;
+          player.y = firstBoat.y - player.height;
+          player.onBoat = true;
+          player.currentBoat = firstBoat;
+          player.onGround = true;
+          player.vx = 0;
+          player.vy = 0;
+        }
         elapsedTime = 0;
         running = true;
         hudWorld.textContent = definition.name ?? `1-${index + 1}`;
@@ -2189,8 +2620,30 @@
             groundTop: "#f0f8ff",
             groundBody: "#e0e8f0",
             groundStripe: "#d0d8e0",
+          },
+          boat: {
+            sky: ["#87ceeb", "#b0d4e8"],
+            isUnderground: false,
+            hillLight: null,
+            hillDark: null,
+            cloud: "#ffffff",
+            groundTop: "#4a90c2",
+            groundBody: "#3a7aa2",
+            groundStripe: "#2a6a92",
             platformTop: "#ffffff",
             platformBody: "#f0f0f8",
+          },
+          research: {
+            sky: ["#e8f0f8", "#d0e0f0"],
+            isUnderground: false,
+            hillLight: "rgba(200, 210, 220, 0.6)",
+            hillDark: "rgba(180, 190, 200, 0.6)",
+            cloud: "#c0d0e0",
+            groundTop: "#a0a8b0",
+            groundBody: "#808890",
+            groundStripe: "#707880",
+            platformTop: "#b0b8c0",
+            platformBody: "#9098a0",
           },
         };
         const selected = themes[themeKey] ?? themes.surface;
@@ -2228,8 +2681,64 @@
 
       function handleCollisions() {
         player.onGround = false;
+        
+        // 检查玩家与船的碰撞（仅在boat主题关卡）
+        const isBoat = levelDefinitions[currentLevelIndex] && levelDefinitions[currentLevelIndex].theme === "boat";
+        if (isBoat) {
+          // 先检查玩家是否在船上（玩家站在船的上方）
+          let onBoat = false;
+          for (const boat of level.boats) {
+            // 检查玩家是否在船的范围内（水平方向，放宽范围以便更容易跳到船上）
+            const isHorizontallyOverBoat = player.right > boat.x - 20 && player.left < boat.x + boat.width + 20;
+            
+            // 检查玩家是否在船的上方（垂直方向，允许更大的范围以便跳跃后落在船上）
+            const isVerticallyOverBoat = player.bottom >= boat.y - 25 && player.bottom <= boat.y + 40;
+            
+            // 检查玩家是否正在下降或静止（或者已经在船上），放宽条件以便更容易跳到船上
+            // 只要玩家在船的垂直范围内且水平重叠，就允许跳到船上
+            const isDescendingOrOnBoat = player.vy >= -150 || player.onBoat || (player.bottom <= boat.y + 10);
+            
+            if (isHorizontallyOverBoat && isVerticallyOverBoat && isDescendingOrOnBoat) {
+              // 玩家站在船上
+              player.onBoat = true;
+              player.currentBoat = boat;
+              player.lastBoat = null; // 清除lastBoat，因为已经在船上了
+              player.onGround = true;
+              // 如果玩家从上方落下，调整位置到船顶部
+              if (player.bottom > boat.y) {
+                player.y = boat.y - player.height;
+                player.vy = 0;
+              }
+              // 如果玩家正在下降，停止下降
+              if (player.vy > 0) {
+                player.vy = 0;
+              }
+              // 保持玩家的水平位置（不强制居中），允许玩家在船边缘以便跳到前方船
+              // 但确保玩家在船内
+              const boatLeft = boat.x + 2;
+              const boatRight = boat.x + boat.width - 2;
+              player.x = clamp(player.x, boatLeft, boatRight - player.width);
+              onBoat = true;
+              break;
+            }
+          }
+          
+          // 如果玩家不在船上，清除船上状态（但保留lastBoat用于船跟随）
+          if (!onBoat) {
+            player.onBoat = false;
+            player.currentBoat = null;
+            // lastBoat保留，用于在障碍物上时让船跟随
+          }
+        }
+        
+        // 重置所有Goomba的onGround状态
+        level.entities.forEach((entity) => {
+          if (entity instanceof Goomba) {
+            entity.onGround = false;
+          }
+        });
         const entities = [player, ...level.entities, ...level.powerups];
-        const colliders = [...level.platforms, ...level.bricks, ...level.skateboards, ...level.snowPiles, ...level.icePillars, ...level.pumpkinObstacles, ...level.coralObstacles];
+        const colliders = [...level.platforms, ...level.bricks, ...level.skateboards, ...level.snowPiles, ...level.icePillars, ...level.pumpkinObstacles, ...level.coralObstacles, ...level.rockObstacles, ...level.trashObstacles];
 
         entities.forEach((entity) => {
           colliders.forEach((platform) => {
@@ -2251,6 +2760,66 @@
               const horizontalCollision = Math.abs(overlapX) < Math.abs(overlapY);
               if (horizontalCollision) {
                 if (entity === player) {
+                  // 垃圾障碍物：玩家碰到会后退
+                  if (platform instanceof TrashObstacle) {
+                    // 让玩家后退
+                    const pushBackSpeed = 300; // 后退速度
+                    if (overlapX > 0) {
+                      // 玩家从右侧碰到，向左后退
+                      player.vx = -pushBackSpeed;
+                    } else {
+                      // 玩家从左侧碰到，向右后退
+                      player.vx = pushBackSpeed;
+                    }
+                    // 稍微向上弹起
+                    if (player.vy > -100) {
+                      player.vy = -150;
+                    }
+                    showToast("Watch out! Trash obstacle!", 1000);
+                    return; // 跳过后续碰撞处理
+                  }
+                  
+                  // 岩石攀爬逻辑：如果玩家接触岩石侧面，可以向上攀爬
+                  if (platform instanceof RockObstacle) {
+                    const isClimbing = (keyState.has("ArrowUp") || keyState.has("KeyW")) && 
+                                      player.top < platform.y + platform.height && 
+                                      player.bottom > platform.y;
+                    if (isClimbing) {
+                      // 允许玩家向上攀爬
+                      player.vy = -150; // 攀爬速度
+                      // 不阻止水平移动，让玩家可以沿着岩石边缘攀爬
+                      return; // 跳过后续碰撞处理
+                    } else {
+                      // 如果不攀爬，正常处理碰撞（阻止水平移动）
+                      entity.x += overlapX;
+                      if (entity instanceof Shark) {
+                        entity.directionX *= -1;
+                        entity.vx = entity.directionX * entity.swimSpeedX;
+                        if (Math.random() > 0.5) {
+                          entity.directionY *= -1;
+                        }
+                      } else if (entity instanceof Bat) {
+                        if (Math.random() > 0.5) {
+                          entity.directionX *= -1;
+                        }
+                        if (Math.random() > 0.5) {
+                          entity.directionY *= -1;
+                        }
+                        entity.vx = entity.directionX * entity.flySpeedX;
+                        entity.vy = entity.directionY * entity.flySpeedY;
+                      } else if (entity instanceof Plane) {
+                        entity.direction *= -1;
+                        entity.vx = entity.direction * entity.horizontalSpeed;
+                      } else if (entity instanceof Monkey || entity instanceof Goomba || entity instanceof Mushroom) {
+                        entity.direction *= -1;
+                        entity.vx = entity.direction * entity.walkSpeed;
+                      } else {
+                        entity.vx = 0;
+                      }
+                      return;
+                    }
+                  }
+                  
                   const platformTop = platform.y;
                   const playerBottom = player.bottom;
                   const stepHeight = platformTop - playerBottom;
@@ -2261,8 +2830,18 @@
                     playerBottom >= platformTop - 32;
                   if (canStep) {
                     player.y = platformTop - player.height;
+                    // 水下关卡：玩家不"站在"平台上，而是悬浮在水中
+                    const isWater = levelDefinitions[currentLevelIndex] && levelDefinitions[currentLevelIndex].theme === "water";
+                    if (!isWater) {
                     player.onGround = true;
                     player.vy = 0;
+                    } else {
+                      // 水下时，玩家可以继续上下移动，不锁定在平台上
+                      // 但允许玩家"站在"平台上（通过浮力平衡）
+                      if (player.vy > 0) {
+                        player.vy = 0; // 如果向下移动，停止下沉
+                      }
+                    }
                     // 检查是否站在障碍物上
                     if ((platform instanceof PumpkinObstacle || platform instanceof CoralObstacle) && player.invincibleTimer === 0) {
                       let message = "Ouch! Hit an obstacle!";
@@ -2342,14 +2921,44 @@
                   }
                 } else if (entity instanceof Monkey) {
                   // 猴子落地时设置onGround状态
-                  entity.vy = 0;
+                entity.vy = 0;
                   entity.onGround = true;
+                } else if (entity instanceof Goomba) {
+                  // Goomba落地时设置onGround状态（用于边缘检测）
+                  if (overlapY < 0) {
+                    entity.vy = 0;
+                    entity.onGround = true;
+                  }
                 } else {
                   entity.vy = 0;
                 }
                 if (entity === player) {
                   if (overlapY < 0) {
+                    // 岩石顶部：玩家可以站在上面，也可以从另一侧跳下来
+                    if (platform instanceof RockObstacle) {
+                      player.y = platform.y - player.height;
                     player.onGround = true;
+                      player.vy = 0;
+                      // 允许玩家从岩石顶部跳下来（不阻止水平移动）
+                      return;
+                    }
+                    // 水下关卡：玩家不"站在"平台上，而是悬浮在水中
+                    const isWater = levelDefinitions[currentLevelIndex] && levelDefinitions[currentLevelIndex].theme === "water";
+                    const isBoatLevel = levelDefinitions[currentLevelIndex] && levelDefinitions[currentLevelIndex].theme === "boat";
+                    if (isBoatLevel) {
+                      // 第9关：玩家可以站在平台上（从船上跳起后可以落在平台上）
+                      // 但玩家在平台上时不能水平移动，只能等待回到船上或继续跳跃
+                      player.onGround = true;
+                      player.vy = 0;
+                    } else if (!isWater) {
+                      player.onGround = true;
+                      player.vy = 0;
+                    } else {
+                      // 水下时，玩家可以继续上下移动，不锁定在平台上
+                      if (player.vy > 0) {
+                        player.vy = 0; // 如果向下移动，停止下沉
+                      }
+                    }
                     // 检查是否站在障碍物上
                     if ((platform instanceof PumpkinObstacle || platform instanceof CoralObstacle) && player.invincibleTimer === 0) {
                       let message = "Ouch! Hit an obstacle!";
@@ -2591,6 +3200,12 @@
         if (level.coralObstacles) {
           level.coralObstacles.forEach((coral) => coral.update(dt));
         }
+        if (level.rockObstacles) {
+          level.rockObstacles.forEach((rock) => rock.update(dt));
+        }
+        if (level.trashObstacles) {
+          level.trashObstacles.forEach((trash) => trash.update(dt));
+        }
         
         // 糖果雨系统（只在第四关）
         if (currentLevelIndex === 3 && level.fallingCandies && level.candyRainTimer !== undefined) {
@@ -2682,10 +3297,43 @@
           }
         }
 
+        // 第9关：如果玩家不在船上且掉到水里，死亡
+        // 注意：这个检测在 handleCollisions() 之后，所以 player.onGround 已经被正确设置
+        const isBoatLevel = levelDefinitions[currentLevelIndex] && levelDefinitions[currentLevelIndex].theme === "boat";
+        if (isBoatLevel && !player.onBoat) {
+          // 水面高度约为 world.height - 104
+          const waterLevel = world.height - 104;
+          
+          // 只有当玩家不在平台上（!player.onGround），不在船上，且玩家的中心点在水面以下，且正在下落时才触发死亡
+          // 如果玩家在平台上（player.onGround = true），就不会触发死亡
+          // 使用玩家的中心点而不是底部，避免在跳跃过程中误判
+          const playerCenterY = player.y + player.height / 2;
+          if (!player.onGround && player.vy > 50 && playerCenterY > waterLevel) {
+            // 玩家掉到水里（只有在明显下落速度时才触发，避免在平台上误判）
+            if (player.size === "big") {
+              player.setSize("small");
+              player.invincibleTimer = 2.2;
+              updateAmmoHUD();
+              showToast("Fell into water—shrunk down!", 1200);
+            } else if (player.extraLives > 0) {
+              player.extraLives -= 1;
+              updateAmmoHUD();
+              showToast("Fell into water! Backup life activated...", 1600);
+              loadLevel(currentLevelIndex, { respawn: true, showIntro: false });
+              return;
+            } else {
+              running = false;
+              showToast("Fell into water—restarting level...", 1600);
+              setTimeout(() => loadLevel(currentLevelIndex, { respawn: true, showIntro: false }), 180);
+              return;
+            }
+          }
+        }
+        
         if (player.y > world.height + 160) {
           if (player.extraLives > 0) {
-          player.extraLives -= 1;
-          updateAmmoHUD();
+            player.extraLives -= 1;
+            updateAmmoHUD();
           showToast("Backup life to the rescue—watch your footing!", 1600);
             loadLevel(currentLevelIndex, { respawn: true, showIntro: false });
             return;
@@ -2698,13 +3346,137 @@
       }
 
       function drawBackground() {
+        const cameraX = world.camera.x;
+        
+        // 第二关（地下关卡）：根据玩家位置绘制明亮背景
+        if (activeTheme.isUnderground && currentLevelIndex === 1) {
+          // 先绘制暗色背景
+          const darkGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+          darkGradient.addColorStop(0, activeTheme.sky[0]);
+          darkGradient.addColorStop(1, activeTheme.sky[1]);
+          ctx.fillStyle = darkGradient;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // 在玩家前方绘制明亮的圆形光照区域
+          const playerScreenX = player.x - world.camera.x;
+          const playerScreenY = player.y + player.height / 2;
+          const lightDistance = 350; // 光照距离
+          const lightRadius = 200; // 圆形光照半径
+          
+          // 计算光照中心位置（玩家前方）
+          const lightCenterX = playerScreenX + (player.facing > 0 ? player.width / 2 + lightDistance / 2 : -player.width / 2 - lightDistance / 2);
+          const lightCenterY = playerScreenY;
+          
+          // 创建明亮的背景区域（圆形，均匀一致的亮色）
+          // 先绘制均匀的亮色圆形区域
+          ctx.fillStyle = "#f5f5e8"; // 均匀一致的亮米色
+          ctx.beginPath();
+          ctx.arc(lightCenterX, lightCenterY, lightRadius, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // 在边缘添加一个小的过渡区域，使边缘更自然
+          const edgeGradient = ctx.createRadialGradient(
+            lightCenterX,
+            lightCenterY,
+            lightRadius * 0.85,
+            lightCenterX,
+            lightCenterY,
+            lightRadius
+          );
+          edgeGradient.addColorStop(0, "rgba(245, 245, 232, 0)");
+          edgeGradient.addColorStop(1, activeTheme.sky[1]);
+          ctx.fillStyle = edgeGradient;
+          ctx.beginPath();
+          ctx.arc(lightCenterX, lightCenterY, lightRadius, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (activeTheme.key === "research" && currentLevelIndex === 0) {
+          // 第一关：科研风格背景
+          // 绘制浅灰色实验室背景
+          const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+          gradient.addColorStop(0, activeTheme.sky[0]);
+          gradient.addColorStop(1, activeTheme.sky[1]);
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // 绘制网格线（科研实验室风格）
+          ctx.strokeStyle = "rgba(160, 170, 180, 0.3)";
+          ctx.lineWidth = 1;
+          const gridSize = 50;
+          const startX = Math.floor((cameraX % gridSize) / gridSize) * gridSize - (cameraX % gridSize);
+          const startY = 0;
+          
+          // 垂直线
+          for (let x = startX; x < canvas.width + gridSize; x += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvas.height);
+            ctx.stroke();
+          }
+          
+          // 水平线
+          for (let y = startY; y < canvas.height; y += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+            ctx.stroke();
+          }
+          
+          // 绘制一些数据图表元素（科研风格装饰）
+          const chartX = 500 - cameraX;
+          const chartY = 100;
+          if (chartX > -100 && chartX < canvas.width + 100) {
+            // 绘制简单的柱状图（提高可见性）
+            ctx.fillStyle = "rgba(100, 150, 200, 0.7)";
+            const barWidth = 20;
+            const bars = [40, 60, 35, 80, 50];
+            bars.forEach((height, i) => {
+              ctx.fillRect(chartX + i * 30, chartY + 100 - height, barWidth, height);
+            });
+            // 图表边框（更明显）
+            ctx.strokeStyle = "rgba(80, 120, 160, 0.8)";
+            ctx.lineWidth = 3;
+            ctx.strokeRect(chartX - 10, chartY, bars.length * 30 + 20, 100);
+          }
+          
+          // 绘制另一个图表
+          const chartX2 = 1500 - cameraX;
+          if (chartX2 > -100 && chartX2 < canvas.width + 100) {
+            // 绘制折线图（提高可见性）
+            ctx.strokeStyle = "rgba(60, 110, 160, 0.9)";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            const points = [30, 50, 40, 70, 60, 45, 80];
+            points.forEach((y, i) => {
+              const x = chartX2 + i * 25;
+              const py = chartY + 100 - y;
+              if (i === 0) {
+                ctx.moveTo(x, py);
+              } else {
+                ctx.lineTo(x, py);
+              }
+            });
+            ctx.stroke();
+            // 数据点（更大更明显）
+            ctx.fillStyle = "rgba(80, 130, 180, 1.0)";
+            points.forEach((y, i) => {
+              ctx.beginPath();
+              ctx.arc(chartX2 + i * 25, chartY + 100 - y, 4, 0, Math.PI * 2);
+              ctx.fill();
+              // 数据点边框
+              ctx.strokeStyle = "rgba(40, 80, 120, 0.8)";
+              ctx.lineWidth = 1;
+              ctx.stroke();
+            });
+          }
+        } else {
+          // 其他关卡正常绘制背景
         const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
         gradient.addColorStop(0, activeTheme.sky[0]);
         gradient.addColorStop(1, activeTheme.sky[1]);
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
 
-        const cameraX = world.camera.x;
         if (!activeTheme.isUnderground) {
           const drawHill = (x, y, radius, color) => {
             ctx.fillStyle = color;
@@ -2851,8 +3623,8 @@
               }
             });
             
-            // 云朵（在较低位置）
-            if (activeTheme.cloud) {
+            // 云朵（在较低位置）- 第一关不绘制云
+          if (activeTheme.cloud && !(currentLevelIndex === 0 && activeTheme.key === "research")) {
               ctx.fillStyle = activeTheme.cloud;
               for (let i = 0; i < 12; i++) {
                 const x = (cameraX / 3 + i * 220) % (canvas.width + 220) - 220;
@@ -2959,8 +3731,8 @@
               ctx.restore();
             }
             
-            // 云朵
-            if (activeTheme.cloud) {
+            // 云朵 - 第一关不绘制云
+            if (activeTheme.cloud && !(currentLevelIndex === 0 && activeTheme.key === "research")) {
               ctx.fillStyle = activeTheme.cloud;
               for (let i = 0; i < 14; i++) {
                 const x = (cameraX / 4 + i * 200) % (canvas.width + 200) - 200;
@@ -2970,7 +3742,7 @@
                 ctx.fill();
               }
             }
-          } else if (activeTheme.cloud) {
+          } else if (activeTheme.cloud && !(currentLevelIndex === 0 && activeTheme.key === "research")) {
             ctx.fillStyle = activeTheme.cloud;
             for (let i = 0; i < 16; i++) {
               const x = (cameraX / 4 + i * 180) % (canvas.width + 180) - 180;
@@ -3254,26 +4026,26 @@
               ctx.lineTo(lightX + 220, canvas.height);
               ctx.closePath();
               ctx.fill();
-            }
-          } else {
-            ctx.fillStyle = "rgba(40, 36, 66, 0.6)";
-            for (let i = 0; i < 6; i++) {
-              const x = (cameraX / 6 + i * 240) % (canvas.width + 240) - 240;
-              ctx.fillRect(x + 40, canvas.height - 220, 200, 200);
-            }
-            ctx.strokeStyle = "rgba(120, 120, 200, 0.08)";
-            for (let y = 80; y < canvas.height; y += 60) {
-              ctx.beginPath();
-              ctx.moveTo(0, y);
-              ctx.lineTo(canvas.width, y);
-              ctx.stroke();
-            }
-            ctx.strokeStyle = "rgba(120, 120, 200, 0.05)";
-            for (let x = 0; x < canvas.width; x += 80) {
-              ctx.beginPath();
-              ctx.moveTo(x, 0);
-              ctx.lineTo(x, canvas.height);
-              ctx.stroke();
+          }
+        } else {
+          ctx.fillStyle = "rgba(40, 36, 66, 0.6)";
+          for (let i = 0; i < 6; i++) {
+            const x = (cameraX / 6 + i * 240) % (canvas.width + 240) - 240;
+            ctx.fillRect(x + 40, canvas.height - 220, 200, 200);
+          }
+          ctx.strokeStyle = "rgba(120, 120, 200, 0.08)";
+          for (let y = 80; y < canvas.height; y += 60) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+            ctx.stroke();
+          }
+          ctx.strokeStyle = "rgba(120, 120, 200, 0.05)";
+          for (let x = 0; x < canvas.width; x += 80) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvas.height);
+            ctx.stroke();
             }
           }
         }
@@ -3288,18 +4060,18 @@
           const x = worldX - world.camera.x;
           const isInPit = (level.pits || []).some(pit => worldX >= pit.x && worldX < pit.x + pit.width);
           if (!isInPit) {
-            ctx.fillStyle = activeTheme.groundBody;
-            ctx.fillRect(x, world.height - tileSize, tileSize, tileSize);
-            ctx.fillStyle = activeTheme.groundTop;
-            ctx.fillRect(x, world.height - tileSize, tileSize, tileSize / 3);
-            ctx.fillStyle = activeTheme.groundStripe;
-            for (let j = 0; j < 3; j++) {
-              ctx.fillRect(
-                x,
-                world.height - tileSize + tileSize / 3 + (tileSize / 3) * j,
-                tileSize,
-                4,
-              );
+          ctx.fillStyle = activeTheme.groundBody;
+          ctx.fillRect(x, world.height - tileSize, tileSize, tileSize);
+          ctx.fillStyle = activeTheme.groundTop;
+          ctx.fillRect(x, world.height - tileSize, tileSize, tileSize / 3);
+          ctx.fillStyle = activeTheme.groundStripe;
+          for (let j = 0; j < 3; j++) {
+            ctx.fillRect(
+              x,
+              world.height - tileSize + tileSize / 3 + (tileSize / 3) * j,
+              tileSize,
+              4,
+            );
             }
           }
         }
@@ -3368,6 +4140,63 @@
           if (x + brick.width < -64 || x > canvas.width + 64) return;
           const bumpOffset = brick.bump > 0 ? Math.sin(brick.bump * Math.PI) * 8 : 0;
           const y = brick.y - bumpOffset;
+          
+          // 第一关：绘制书架
+          if (currentLevelIndex === 0 && activeTheme.key === "research") {
+            // 书架主体（棕色木制）
+            ctx.fillStyle = "#8b6f47";
+            ctx.fillRect(x, y, brick.width, brick.height);
+            
+            // 书架边框
+            ctx.strokeStyle = "#6b4f27";
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x, y, brick.width, brick.height);
+            
+            // 书架内部隔板（水平线）
+            ctx.strokeStyle = "#6b4f27";
+            ctx.lineWidth = 2;
+            for (let i = 1; i < 3; i++) {
+              ctx.beginPath();
+              ctx.moveTo(x + 4, y + (brick.height / 3) * i);
+              ctx.lineTo(x + brick.width - 4, y + (brick.height / 3) * i);
+              ctx.stroke();
+            }
+            
+            // 绘制书籍（垂直的书脊）
+            const bookCount = 4;
+            const bookWidth = (brick.width - 12) / bookCount;
+            for (let i = 0; i < bookCount; i++) {
+              const bookX = x + 6 + i * bookWidth;
+              const bookColors = ["#4a5c7a", "#7a4a5c", "#5c7a4a", "#6a4a7a"];
+              ctx.fillStyle = bookColors[i % bookColors.length];
+              ctx.fillRect(bookX, y + 4, bookWidth - 2, brick.height - 8);
+              
+              // 书脊装饰线
+              ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(bookX + (bookWidth - 2) / 2, y + 4);
+              ctx.lineTo(bookX + (bookWidth - 2) / 2, y + brick.height - 4);
+              ctx.stroke();
+            }
+            
+            // 如果是问号砖块，在顶部添加一个小标签
+            if (brick.kind === "question") {
+              ctx.fillStyle = "#ffd700";
+              ctx.fillRect(x + brick.width - 20, y - 8, 16, 12);
+              ctx.strokeStyle = "#d4af37";
+              ctx.lineWidth = 1;
+              ctx.strokeRect(x + brick.width - 20, y - 8, 16, 12);
+              ctx.fillStyle = "#000";
+              ctx.font = "bold 10px Nunito";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText("?", x + brick.width - 12, y - 2);
+            }
+            return;
+          }
+          
+          // 其他关卡：正常绘制砖块
           if (brick.kind === "empty") {
             ctx.fillStyle = "#b0b0b0";
             ctx.fillRect(x, y, brick.width, brick.height);
@@ -3741,6 +4570,210 @@
         });
       }
 
+      function drawRockObstacles() {
+        if (!level.rockObstacles) return;
+        level.rockObstacles.forEach((rock) => {
+          const x = rock.x - world.camera.x;
+          if (x + rock.width < -64 || x > canvas.width + 64) return;
+          ctx.save();
+          
+          // 岩石主体（灰色，不规则形状）
+          ctx.fillStyle = "#5a5a5a";
+          ctx.beginPath();
+          // 左侧边缘（不规则）
+          ctx.moveTo(x, rock.y + rock.height);
+          ctx.lineTo(x + 5, rock.y + rock.height - 10);
+          ctx.lineTo(x + 3, rock.y + rock.height - 25);
+          ctx.lineTo(x + 8, rock.y + rock.height - 40);
+          ctx.lineTo(x + 2, rock.y + rock.height - 55);
+          ctx.lineTo(x + 6, rock.y + rock.height - 70);
+          ctx.lineTo(x + 1, rock.y + rock.height - 85);
+          ctx.lineTo(x + 4, rock.y + rock.height - 100);
+          ctx.lineTo(x, rock.y + rock.height - 115);
+          ctx.lineTo(x, rock.y);
+          // 顶部（不规则）
+          ctx.lineTo(x + 15, rock.y - 2);
+          ctx.lineTo(x + 30, rock.y);
+          ctx.lineTo(x + 45, rock.y - 3);
+          ctx.lineTo(x + 60, rock.y);
+          ctx.lineTo(x + 75, rock.y - 1);
+          ctx.lineTo(x + rock.width, rock.y);
+          // 右侧边缘（不规则）
+          ctx.lineTo(x + rock.width - 5, rock.y + rock.height - 10);
+          ctx.lineTo(x + rock.width - 3, rock.y + rock.height - 25);
+          ctx.lineTo(x + rock.width - 8, rock.y + rock.height - 40);
+          ctx.lineTo(x + rock.width - 2, rock.y + rock.height - 55);
+          ctx.lineTo(x + rock.width - 6, rock.y + rock.height - 70);
+          ctx.lineTo(x + rock.width - 1, rock.y + rock.height - 85);
+          ctx.lineTo(x + rock.width - 4, rock.y + rock.height - 100);
+          ctx.lineTo(x + rock.width, rock.y + rock.height - 115);
+          ctx.lineTo(x + rock.width, rock.y + rock.height);
+          ctx.closePath();
+          ctx.fill();
+          
+          // 岩石纹理（深色线条）
+          ctx.strokeStyle = "#3a3a3a";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x + 20, rock.y + rock.height);
+          ctx.lineTo(x + 25, rock.y + rock.height - 30);
+          ctx.lineTo(x + 20, rock.y + rock.height - 60);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(x + 40, rock.y + rock.height);
+          ctx.lineTo(x + 45, rock.y + rock.height - 35);
+          ctx.lineTo(x + 40, rock.y + rock.height - 70);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(x + 60, rock.y + rock.height);
+          ctx.lineTo(x + 55, rock.y + rock.height - 25);
+          ctx.lineTo(x + 60, rock.y + rock.height - 50);
+          ctx.stroke();
+          
+          // 岩石高光
+          ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+          ctx.beginPath();
+          ctx.moveTo(x + 10, rock.y);
+          ctx.lineTo(x + 30, rock.y - 2);
+          ctx.lineTo(x + 25, rock.y + 20);
+          ctx.lineTo(x + 15, rock.y + 15);
+          ctx.closePath();
+          ctx.fill();
+          
+          ctx.restore();
+        });
+      }
+
+      function drawTrashObstacles() {
+        if (!level.trashObstacles) return;
+        level.trashObstacles.forEach((trash) => {
+          const x = trash.x - world.camera.x;
+          if (x + trash.width < -64 || x > canvas.width + 64) return;
+          ctx.save();
+          ctx.translate(x + trash.width / 2, trash.y + trash.height);
+          
+          // 垃圾袋主体（深色）
+          ctx.fillStyle = "#2c2c2c";
+          ctx.beginPath();
+          ctx.ellipse(0, -15, 20, 18, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // 垃圾袋顶部（打结）
+          ctx.fillStyle = "#1a1a1a";
+          ctx.beginPath();
+          ctx.arc(-8, -28, 4, 0, Math.PI * 2);
+          ctx.arc(8, -28, 4, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // 垃圾袋纹理（皱褶）
+          ctx.strokeStyle = "#3a3a3a";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(-15, -20);
+          ctx.lineTo(-10, -10);
+          ctx.lineTo(-5, -15);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(5, -15);
+          ctx.lineTo(10, -10);
+          ctx.lineTo(15, -20);
+          ctx.stroke();
+          
+          // 垃圾袋上的标签/贴纸
+          ctx.fillStyle = "#ff6b35";
+          ctx.fillRect(-8, -18, 16, 6);
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 8px Nunito";
+          ctx.textAlign = "center";
+          ctx.fillText("!", 0, -13);
+          
+          // 垃圾袋底部阴影
+          ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 22, 4, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.restore();
+        });
+      }
+
+      function drawWaterWaves() {
+        // 绘制水面波浪效果（仅在boat主题关卡）
+        const isBoat = levelDefinitions[currentLevelIndex] && levelDefinitions[currentLevelIndex].theme === "boat";
+        if (!isBoat) return;
+        
+        const waterY = world.height - 104; // 水面高度
+        const waveSpeed = 2;
+        const waveAmplitude = 3;
+        const waveFrequency = 0.01;
+        
+        ctx.save();
+        ctx.strokeStyle = "#3a7aa2";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        const startX = Math.max(0, world.camera.x - 100);
+        const endX = Math.min(world.width, world.camera.x + canvas.width + 100);
+        
+        for (let x = startX; x < endX; x += 2) {
+          const waveOffset = Math.sin((x * waveFrequency) + (elapsedTime * waveSpeed)) * waveAmplitude;
+          const y = waterY + waveOffset;
+          const screenX = x - world.camera.x;
+          
+          if (x === startX) {
+            ctx.moveTo(screenX, y);
+          } else {
+            ctx.lineTo(screenX, y);
+          }
+        }
+        
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawBoats() {
+        // 绘制所有船只
+        level.boats.forEach((boat) => {
+          const x = boat.x - world.camera.x;
+          const y = boat.y;
+          
+          ctx.save();
+          
+          // 船体（棕色木船）
+          ctx.fillStyle = "#8b6f47";
+          ctx.beginPath();
+          ctx.ellipse(x + boat.width / 2, y + boat.height / 2, boat.width / 2, boat.height / 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // 船体边缘（深棕色）
+          ctx.strokeStyle = "#6b5f37";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          
+          // 船内部（浅棕色）
+          ctx.fillStyle = "#9b7f57";
+          ctx.beginPath();
+          ctx.ellipse(x + boat.width / 2, y + boat.height / 2, boat.width / 2 - 4, boat.height / 2 - 4, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // 船桨（如果船在移动）
+          if (Math.abs(boat.vx) > 5) {
+            const paddleX = boat.vx > 0 ? x + boat.width - 15 : x + 15;
+            const paddleY = y + boat.height / 2;
+            const paddleOffset = Math.sin(elapsedTime * 10) * 8;
+            
+            ctx.fillStyle = "#654321";
+            ctx.fillRect(paddleX - 2, paddleY - 10 + paddleOffset, 4, 20);
+            
+            // 桨叶
+            ctx.fillStyle = "#4a3a21";
+            ctx.fillRect(paddleX - 4, paddleY - 10 + paddleOffset, 8, 6);
+          }
+          
+          ctx.restore();
+        });
+      }
+
       function drawFlag() {
         if (!level.flag) return;
         const flag = level.flag;
@@ -3813,10 +4846,6 @@
         ctx.fillRect(18, 22, 12, 4);
         ctx.fillRect(20, 30, 8, 10);
 
-        ctx.fillStyle = "#6d4c41";
-        ctx.fillRect(6, 38, 12, 10);
-        ctx.fillRect(32, 38, 12, 10);
-
         ctx.fillStyle = "#263238";
         ctx.beginPath();
         ctx.arc(20, 16, 2, 0, Math.PI * 2);
@@ -3828,6 +4857,163 @@
         ctx.moveTo(18, 22);
         ctx.quadraticCurveTo(24, 28, 30, 22);
         ctx.stroke();
+
+        // 如果是第二关（地下关卡），绘制头灯
+        const currentDefinition = levelDefinitions[currentLevelIndex];
+        if (currentDefinition && currentDefinition.theme === "underground") {
+          // 头灯带子
+          ctx.fillStyle = "#1a1a1a";
+          ctx.fillRect(18, 8, 12, 4);
+          // 头灯主体
+          ctx.fillStyle = "#f5c542";
+          ctx.beginPath();
+          ctx.arc(24, 10, 6, 0, Math.PI * 2);
+          ctx.fill();
+          // 头灯光源（白色高光）
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.arc(24, 10, 3, 0, Math.PI * 2);
+          ctx.fill();
+          // 头灯边框
+          ctx.strokeStyle = "#1a1a1a";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(24, 10, 6, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // 如果是水下关卡，绘制潜水装备
+        if (currentDefinition && currentDefinition.theme === "water") {
+          // 绘制潜水镜（在头部）
+          ctx.fillStyle = "#1a1a2e";
+          ctx.beginPath();
+          ctx.arc(20, 16, 6, 0, Math.PI * 2);
+          ctx.arc(28, 16, 6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#4a90e2";
+          ctx.beginPath();
+          ctx.arc(20, 16, 4, 0, Math.PI * 2);
+          ctx.arc(28, 16, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(20, 16, 6, 0, Math.PI * 2);
+          ctx.arc(28, 16, 6, 0, Math.PI * 2);
+          ctx.stroke();
+          // 连接两个镜片的带子
+          ctx.strokeStyle = "#1a1a2e";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(26, 16);
+          ctx.lineTo(22, 16);
+          ctx.stroke();
+          
+          // 绘制氧气瓶（在背部）
+          ctx.fillStyle = "#2c3e50";
+          ctx.fillRect(32, 24, 8, 20);
+          ctx.fillStyle = "#34495e";
+          ctx.fillRect(33, 25, 6, 18);
+          // 氧气瓶顶部
+          ctx.fillStyle = "#1a1a2e";
+          ctx.fillRect(33, 24, 6, 3);
+          // 氧气瓶阀门
+          ctx.fillStyle = "#e74c3c";
+          ctx.beginPath();
+          ctx.arc(36, 24, 2, 0, Math.PI * 2);
+          ctx.fill();
+          // 氧气管（连接到嘴巴）
+          ctx.strokeStyle = "#34495e";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(36, 28);
+          ctx.quadraticCurveTo(32, 30, 28, 26);
+          ctx.stroke();
+          ctx.fillStyle = "#34495e";
+          ctx.beginPath();
+          ctx.arc(28, 26, 2, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // 绘制脚蹼（替换原来的脚，带摆动动画）
+          // 计算摆动角度（使用动画计时器创建游泳动作）
+          const swimSpeed = 10; // 摆动速度
+          const swimAmplitude = 20; // 摆动幅度（度）
+          const leftFlapAngle = Math.sin(player.animationTimer * swimSpeed) * swimAmplitude * (Math.PI / 180);
+          const rightFlapAngle = Math.sin(player.animationTimer * swimSpeed + Math.PI) * swimAmplitude * (Math.PI / 180); // 与左脚相反相位
+          
+          ctx.fillStyle = "#ff6b35";
+          
+          // 左脚蹼（从脚的位置 y:38 开始延伸，带摆动）
+          ctx.save();
+          ctx.translate(9, 48); // 以脚蹼中心为旋转点（y:38 + 10 = 48，脚蹼中心）
+          ctx.rotate(leftFlapAngle);
+          // 脚蹼形状（从中心向两侧延伸）
+          ctx.beginPath();
+          ctx.moveTo(-4, -10); // 顶部左侧
+          ctx.lineTo(4, -10); // 顶部右侧
+          ctx.lineTo(6, -6); // 右侧上
+          ctx.lineTo(8, 0); // 右侧中
+          ctx.lineTo(6, 6); // 右侧下
+          ctx.lineTo(2, 10); // 底部右侧
+          ctx.lineTo(-6, 10); // 底部左侧
+          ctx.lineTo(-10, 6); // 左侧下
+          ctx.lineTo(-12, 0); // 左侧中
+          ctx.lineTo(-10, -6); // 左侧上
+          ctx.closePath();
+          ctx.fill();
+          // 左脚蹼纹理（分叉线）
+          ctx.strokeStyle = "#ff8c5a";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(-4, -10);
+          ctx.lineTo(-2, 0);
+          ctx.lineTo(-4, 6);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(4, -10);
+          ctx.lineTo(2, 0);
+          ctx.lineTo(4, 6);
+          ctx.stroke();
+          ctx.restore();
+          
+          // 右脚蹼（与左脚相反相位摆动）
+          ctx.save();
+          ctx.translate(29, 48); // 以脚蹼中心为旋转点
+          ctx.rotate(rightFlapAngle);
+          // 脚蹼形状（从中心向两侧延伸）
+          ctx.beginPath();
+          ctx.moveTo(-4, -10); // 顶部左侧
+          ctx.lineTo(4, -10); // 顶部右侧
+          ctx.lineTo(6, -6); // 右侧上
+          ctx.lineTo(8, 0); // 右侧中
+          ctx.lineTo(6, 6); // 右侧下
+          ctx.lineTo(2, 10); // 底部右侧
+          ctx.lineTo(-6, 10); // 底部左侧
+          ctx.lineTo(-10, 6); // 左侧下
+          ctx.lineTo(-12, 0); // 左侧中
+          ctx.lineTo(-10, -6); // 左侧上
+          ctx.closePath();
+          ctx.fill();
+          // 右脚蹼纹理（分叉线）
+          ctx.strokeStyle = "#ff8c5a";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(-4, -10);
+          ctx.lineTo(-2, 0);
+          ctx.lineTo(-4, 6);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(4, -10);
+          ctx.lineTo(2, 0);
+          ctx.lineTo(4, 6);
+          ctx.stroke();
+          ctx.restore();
+        } else {
+          // 非水下关卡，绘制原来的脚
+          ctx.fillStyle = "#6d4c41";
+          ctx.fillRect(6, 38, 12, 10);
+          ctx.fillRect(32, 38, 12, 10);
+        }
 
         // 如果玩家在滑板上，绘制滑板
         if (player.onSkateboard) {
@@ -4298,29 +5484,29 @@
               }
             } else {
               // 原来的Goomba形象
-              ctx.scale(entity.state === "squashed" ? 1 : 1, entity.state === "squashed" ? 0.3 : 1);
+          ctx.scale(entity.state === "squashed" ? 1 : 1, entity.state === "squashed" ? 0.3 : 1);
 
-              ctx.fillStyle = "#a45c2a";
-              ctx.beginPath();
-              ctx.ellipse(0, -20, 20, 24, 0, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.fillRect(-22, -26, 44, 20);
+          ctx.fillStyle = "#a45c2a";
+          ctx.beginPath();
+          ctx.ellipse(0, -20, 20, 24, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillRect(-22, -26, 44, 20);
 
-              ctx.fillStyle = "#fdf4ed";
-              ctx.fillRect(-14, -32, 12, 16);
-              ctx.fillRect(2, -32, 12, 16);
-              ctx.fillStyle = "#2c2c2c";
-              ctx.beginPath();
-              ctx.arc(-8, -24, 4, 0, Math.PI * 2);
-              ctx.arc(8, -24, 4, 0, Math.PI * 2);
-              ctx.fill();
+          ctx.fillStyle = "#fdf4ed";
+          ctx.fillRect(-14, -32, 12, 16);
+          ctx.fillRect(2, -32, 12, 16);
+          ctx.fillStyle = "#2c2c2c";
+          ctx.beginPath();
+          ctx.arc(-8, -24, 4, 0, Math.PI * 2);
+          ctx.arc(8, -24, 4, 0, Math.PI * 2);
+          ctx.fill();
 
-              ctx.fillStyle = "#5d3d20";
-              ctx.fillRect(-18, -6, 12, 16);
-              ctx.fillRect(6, -6, 12, 16);
+          ctx.fillStyle = "#5d3d20";
+          ctx.fillRect(-18, -6, 12, 16);
+          ctx.fillRect(6, -6, 12, 16);
             }
           }
-          
+
           ctx.restore();
         });
       }
@@ -4348,6 +5534,7 @@
       function draw() {
         drawBackground();
         drawGround();
+        drawWaterWaves(); // 水面波浪（在船之前绘制）
         drawPlatforms();
         drawBricks();
         drawCoins();
@@ -4357,12 +5544,107 @@
         drawIcePillars();
         drawPumpkinObstacles();
         drawCoralObstacles();
+        drawRockObstacles();
+        drawTrashObstacles();
+        drawBoats(); // 绘制船只
         levelCelebration.draw();
         drawFireballs();
         drawFallingCandies();
         drawFlag();
         drawGoombas();
         drawPlayer();
+        drawImpactFactor();
+      }
+
+      function drawHeadlightEffect() {
+        // 在玩家前方绘制光照效果，让垃圾和蝙蝠更清晰可见
+        ctx.save();
+        
+        const playerScreenX = player.x - world.camera.x;
+        const playerScreenY = player.y + player.height / 2;
+        const lightDistance = 350; // 增大光照范围（约3.5米）
+        const lightWidth = 400; // 光照宽度
+        
+        // 计算光照区域（玩家前方，根据玩家朝向）
+        let lightStartX, lightEndX;
+        if (player.facing > 0) {
+          // 向右，光照从玩家右侧开始
+          lightStartX = playerScreenX + player.width / 2;
+          lightEndX = lightStartX + lightDistance;
+        } else {
+          // 向左，光照从玩家左侧开始
+          lightEndX = playerScreenX - player.width / 2;
+          lightStartX = lightEndX - lightDistance;
+        }
+        
+        const lightTop = playerScreenY - lightWidth / 2;
+        const lightBottom = playerScreenY + lightWidth / 2;
+        
+        // 创建均匀的亮色区域（矩形，不渐变）
+        ctx.globalCompositeOperation = "screen";
+        ctx.fillStyle = "rgba(255, 255, 220, 0.6)"; // 均匀一致的亮黄色
+        ctx.fillRect(lightStartX, lightTop, lightEndX - lightStartX, lightBottom - lightTop);
+        
+        ctx.restore();
+      }
+
+      function drawImpactFactor() {
+        // 在canvas右上角绘制Impact factor
+        ctx.save();
+        
+        // 背景框
+        const padding = 12;
+        const boxWidth = 180;
+        const boxHeight = 50;
+        const x = canvas.width - boxWidth - padding;
+        const y = padding;
+        
+        // 半透明背景
+        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+        ctx.fillRect(x, y, boxWidth, boxHeight);
+        
+        // 边框
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, boxWidth, boxHeight);
+        
+        // 标题
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 14px Nunito";
+        ctx.textAlign = "left";
+        ctx.fillText("Impact Factor", x + 10, y + 20);
+        
+        // Impact factor值
+        const impactValue = player.impactFactor.toFixed(1);
+        ctx.fillStyle = "#f5c542";
+        ctx.font = "bold 20px Nunito";
+        ctx.textAlign = "right";
+        ctx.fillText(impactValue, x + boxWidth - 10, y + 42);
+        
+        // 进度条背景
+        const progressBarX = x + 10;
+        const progressBarY = y + 28;
+        const progressBarWidth = boxWidth - 20;
+        const progressBarHeight = 8;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.fillRect(progressBarX, progressBarY, progressBarWidth, progressBarHeight);
+        
+        // 进度条填充（最多80分，8关×10分）
+        const maxImpact = 80; // 8关×10分
+        const progress = Math.min(maxImpact, player.impactFactor) / maxImpact;
+        const progressWidth = progressBarWidth * progress;
+        
+        // 根据进度值使用不同颜色
+        if (progress >= 0.8) {
+          ctx.fillStyle = "#21a179"; // 绿色（高）
+        } else if (progress >= 0.5) {
+          ctx.fillStyle = "#f5c542"; // 黄色（中）
+        } else {
+          ctx.fillStyle = "#e04040"; // 红色（低）
+        }
+        ctx.fillRect(progressBarX, progressBarY, progressWidth, progressBarHeight);
+        
+        ctx.restore();
       }
 
       function loop(timestamp) {
